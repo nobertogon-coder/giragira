@@ -2,2028 +2,1469 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Gira-Gira: Grand Prix das 10 Ilhas Lendárias</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
       margin: 0;
       padding: 0;
-      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
     }
-    html, body {
+    body, html {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #0284c7;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      touch-action: none;
+      background: #020617;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      position: fixed;
     }
     #game-canvas {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       display: block;
       z-index: 1;
     }
 
     /* HUD Superior */
-    .hud-layer {
+    #hud {
       position: absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
+      top: env(safe-area-inset-top, 10px);
+      left: 0;
+      width: 100%;
+      padding: 10px 14px;
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       z-index: 20;
       pointer-events: none;
     }
-    .hud-box {
-      background: rgba(15, 23, 42, 0.9);
-      border: 2px solid #f59e0b;
+    .hud-badge {
+      background: rgba(15, 23, 42, 0.82);
+      border: 2px solid rgba(255, 255, 255, 0.15);
       border-radius: 14px;
-      padding: 8px 14px;
+      padding: 6px 14px;
       color: #fff;
-      pointer-events: auto;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       backdrop-filter: blur(8px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      font-size: clamp(0.75rem, 3vw, 0.95rem);
+      pointer-events: auto;
     }
-    .hud-title {
-      font-size: 11px;
-      font-weight: 900;
-      color: #fcd34d;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .hud-val {
-      font-size: 16px;
-      font-weight: 900;
-      color: #fff;
-    }
-    .rpm-bar-bg {
-      width: 130px;
-      height: 8px;
-      background: #334155;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 4px;
-      border: 1px solid #475569;
-    }
-    #rpm-bar-fill {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+    .badge-gold {
+      border-color: #fbbf24;
+      color: #fde68a;
     }
 
-    /* Track Music Tag */
-    #music-tag {
-      font-size: 10px;
-      color: #38bdf8;
-      font-weight: 700;
-      margin-top: 2px;
+    /* Botão de Som / Pausa */
+    #audio-toggle {
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.15s ease;
+    }
+    #audio-toggle:active {
+      transform: scale(0.92);
+    }
+
+    /* Controles Mobile - Joystick Analógico Estilo PlayStation & Botão de Pulo */
+    #mobile-controls {
+      position: absolute;
+      bottom: env(safe-area-inset-bottom, 15px);
+      left: 0;
+      width: 100%;
+      height: 180px;
       display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 20px 15px 20px;
+      z-index: 25;
+      pointer-events: none;
+    }
+
+    /* Joystick Dinâmico */
+    #joystick-zone {
+      width: 150px;
+      height: 150px;
+      position: relative;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #joystick-base {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.92));
+      border: 3px solid rgba(96, 165, 250, 0.55);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), inset 0 0 15px rgba(0,0,0,0.6);
+      position: relative;
+      touch-action: none;
+    }
+    #joystick-stick {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #60a5fa, #1e40af);
+      border: 2px solid #93c5fd;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.4);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: transform 0.05s ease-out;
+    }
+
+    /* Botão de Pulo Estilo PlayStation */
+    #btn-jump {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #10b981, #047857);
+      border: 3px solid #6ee7b7;
+      color: white;
+      font-weight: 900;
+      font-size: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45), inset 0 2px 6px rgba(255,255,255,0.4);
+      pointer-events: auto;
+      touch-action: none;
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 25px;
+    }
+    #btn-jump:active {
+      transform: scale(0.9);
+      background: radial-gradient(circle at 35% 35%, #059669, #065f46);
+    }
+    #btn-jump span {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+
+    /* Menus & Modais */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(2, 6, 23, 0.88);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .modal-card {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      color: #fff;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-card h1 {
+      font-size: clamp(1.4rem, 5vw, 1.9rem);
+      margin-bottom: 8px;
+      color: #38bdf8;
+      text-shadow: 0 2px 10px rgba(56, 189, 248, 0.4);
+    }
+    .modal-card p {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 18px;
+    }
+    .input-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+    .input-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 5px;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 2px solid #334155;
+      background: #1e293b;
+      color: white;
+      font-size: 1rem;
+      outline: none;
+    }
+    .input-group input:focus {
+      border-color: #38bdf8;
+    }
+    .btn-action {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+    }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-secondary {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+    }
+    .btn-secondary:active { transform: scale(0.97); }
+    .btn-online {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: white;
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+    }
+
+    /* Vitrine Loja de Skins */
+    #shop-preview-container {
+      width: 100%;
+      height: 180px;
+      background: #1e293b;
+      border-radius: 14px;
+      margin-bottom: 15px;
+      position: relative;
+      overflow: hidden;
+      border: 2px solid #334155;
+    }
+    .skin-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      padding: 4px;
+    }
+    .skin-item {
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      padding: 8px 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
       align-items: center;
       gap: 4px;
     }
+    .skin-item.selected {
+      border-color: #38bdf8;
+      background: #0369a1;
+    }
+    .skin-item.equipped {
+      border-color: #10b981;
+      background: #064e3b;
+    }
 
-    /* Controles Mobile */
-    #mobile-dpad {
+    /* Ecrã de Vitória / Fim */
+    #final-trophy-text {
+      font-size: clamp(1.2rem, 4vw, 1.6rem);
+      font-weight: 900;
+      color: #facc15;
+      text-shadow: 0 0 15px rgba(250, 204, 21, 0.6);
+      margin: 12px 0;
+    }
+
+    /* Notificação rápida (Toast) */
+    #toast {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
-      z-index: 30;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      touch-action: none;
-    }
-    .dpad-row {
-      display: flex;
-      gap: 8px;
-    }
-    .touch-btn {
-      width: 58px;
-      height: 58px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 2px solid #f59e0b;
-      border-radius: 14px;
-      color: #fde047;
-      font-size: 22px;
+      top: 65px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      border: 2px solid #38bdf8;
+      padding: 8px 18px;
+      border-radius: 20px;
+      color: #fff;
       font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
-      touch-action: none;
-    }
-    .touch-btn:active {
-      background: #d97706;
-      color: #fff;
-      transform: scale(0.94);
-    }
-    #mobile-jump-wrap {
-      position: absolute;
-      bottom: 22px;
-      right: 22px;
-      z-index: 30;
-      touch-action: none;
-    }
-    #btn-jump-action {
-      width: 90px;
-      height: 90px;
-      border-radius: 24px;
-      background: linear-gradient(135deg, #10b981, #059669);
-      border: 3px solid #fef08a;
-      color: #fff;
-      font-size: 15px;
-      font-weight: 900;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 25px rgba(16, 185, 129, 0.7);
-      touch-action: none;
-      cursor: pointer;
-    }
-    #btn-jump-action:active {
-      transform: scale(0.92);
-      filter: brightness(1.2);
-    }
-
-    /* Telas e Modais */
-    .screen-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(10, 15, 29, 0.95);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
-      padding: 15px;
-    }
-    .menu-card {
-      background: linear-gradient(180deg, #1e293b, #0f172a);
-      border: 3px solid #f59e0b;
-      padding: 24px;
-      border-radius: 24px;
-      width: 100%;
-      max-width: 480px;
-      text-align: center;
-      color: #fff;
-      box-shadow: 0 0 45px rgba(245, 158, 11, 0.45);
-    }
-    .input-field {
-      width: 100%;
-      padding: 12px;
-      border-radius: 12px;
-      border: 2px solid #b45309;
-      background: #020617;
-      color: #fde047;
-      font-size: 16px;
-      font-weight: bold;
-      text-align: center;
-      margin: 10px 0 16px 0;
-      outline: none;
-    }
-    .btn {
-      width: 100%;
-      padding: 13px;
-      margin-bottom: 10px;
-      font-size: 15px;
-      font-weight: 900;
-      border-radius: 14px;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: transform 0.1s ease;
-    }
-    .btn:active {
-      transform: scale(0.97);
-    }
-    .btn-green { background: #16a34a; color: white; border: 2px solid #86efac; }
-    .btn-blue { background: #2563eb; color: white; border: 2px solid #93c5fd; }
-    .btn-amber { background: #d97706; color: white; border: 2px solid #fde047; }
-    .btn-gray { background: #475569; color: white; }
-    .hidden { display: none !important; }
-
-    /* Layout da Loja com Preview 3D */
-    .shop-container {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      width: 100%;
-      max-width: 540px;
-    }
-    #preview-box {
-      width: 100%;
-      height: 180px;
-      background: radial-gradient(circle, #1e293b 0%, #090d16 100%);
-      border: 2px solid #f59e0b;
-      border-radius: 16px;
-      position: relative;
-      overflow: hidden;
-    }
-    #preview-canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-    #preview-name {
-      position: absolute;
-      bottom: 8px;
-      left: 0;
-      right: 0;
-      font-size: 14px;
-      font-weight: 900;
-      color: #fde047;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      font-size: 0.85rem;
+      z-index: 200;
       pointer-events: none;
-    }
-
-    /* Contagem */
-    #countdown-box {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 40;
-      pointer-events: none;
-    }
-    #countdown-text {
-      font-size: 84px;
-      font-weight: 900;
-      color: #f59e0b;
-      text-shadow: 0 0 30px #ef4444, 0 0 60px #000;
-      transform: scale(0);
-      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
   <canvas id="game-canvas"></canvas>
 
-  <!-- Player de Áudio Real com Fallback -->
-  <audio id="bgm-player" preload="auto" loop></audio>
+  <div id="toast">Aviso do Sistema</div>
 
-  <!-- HUD SUPERIOR -->
-  <div id="hud-layer" class="hud-layer hidden">
-    <div class="hud-box">
-      <div class="hud-title" id="hud-level-title">Ilha 1: Praia N. Sanity</div>
-      <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span id="hud-p1-rpm" class="hud-val">8500 RPM</span>
-        <span style="font-weight: 900; color: #facc15; font-size: 14px; margin-left: 12px;">🪙 <span id="hud-coin-count">0</span></span>
-      </div>
-      <div class="rpm-bar-bg"><div id="rpm-bar-fill"></div></div>
-      <div id="music-tag">🎵 <span id="music-track-name">Super Mario Bros Theme</span></div>
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-badge badge-gold">
+      🪙 <span id="hud-coins">0</span>
     </div>
-
-    <div style="display: flex; gap: 8px;">
-      <button onclick="toggleAudio()" class="hud-box" style="cursor: pointer; font-size: 14px; font-weight: bold;">
-        <span id="audio-icon">🔊</span>
-      </button>
-      <div class="hud-box" style="text-align: right;">
-        <div class="hud-title" id="hud-rival-title">Bot Faísca ⚡</div>
-        <div id="hud-p2-rpm" class="hud-val" style="color: #f87171;">8500 RPM</div>
-      </div>
+    <div class="hud-badge">
+      🏝️ <span id="hud-island">Ilha 1: Praia</span>
+    </div>
+    <div class="hud-badge" id="audio-toggle">
+      🔊 Som
     </div>
   </div>
 
-  <!-- CONTAGEM 3, 2, 1, JÁ! -->
-  <div id="countdown-box"><div id="countdown-text">3</div></div>
-
-  <!-- D-PAD MOBILE -->
-  <div id="mobile-dpad" class="hidden">
-    <button id="dpad-up" class="touch-btn" style="margin-bottom: 6px;">▲</button>
-    <div class="dpad-row">
-      <button id="dpad-left" class="touch-btn">◀</button>
-      <button id="dpad-down" class="touch-btn">▼</button>
-      <button id="dpad-right" class="touch-btn">▶</button>
+  <!-- Controlo Tátil Mobile -->
+  <div id="mobile-controls">
+    <div id="joystick-zone">
+      <div id="joystick-base">
+        <div id="joystick-stick"></div>
+      </div>
     </div>
-  </div>
-
-  <!-- PULAR MOBILE -->
-  <div id="mobile-jump-wrap" class="hidden">
-    <button id="btn-jump-action">
-      <span style="font-size: 28px;">🦘</span>
-      <span>PULAR</span>
+    <button id="btn-jump">
+      ✕
+      <span>SALTAR</span>
     </button>
   </div>
 
-  <!-- MENU PRINCIPAL -->
-  <div id="screen-main" class="screen-overlay">
-    <div class="menu-card">
-      <div style="font-size: 46px; margin-bottom: 4px;">🌪️</div>
-      <h1 style="font-size: 26px; font-weight: 900; color: #fde047; text-shadow: 0 2px 10px rgba(0,0,0,0.8);">GIRA-GIRA</h1>
-      <p style="font-size: 13px; color: #94a3b8; margin-bottom: 12px;">Grand Prix das 10 Ilhas Lendárias</p>
+  <!-- Menu Inicial -->
+  <div id="menu-modal" class="modal-overlay">
+    <div class="modal-card">
+      <h1>🌀 Gira-Gira 3D</h1>
+      <p>Grand Prix das 10 Ilhas Lendárias</p>
 
-      <div style="background: rgba(0,0,0,0.45); border: 2px solid #d97706; padding: 10px 14px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <div style="text-align: left;">
-          <span style="font-size: 10px; color: #fcd34d; text-transform: uppercase; font-weight: 800; display: block;">Seu Tesouro</span>
-          <span id="menu-coins-val" style="font-size: 18px; font-weight: 900; color: #facc15;">🪙 0 Moedas</span>
-        </div>
-        <button onclick="openShop()" class="btn btn-amber" style="width: auto; padding: 8px 14px; margin-bottom: 0; font-size: 13px;">⭐ Loja com Visor 3D</button>
+      <div class="input-group">
+        <label>Nome do Jogador:</label>
+        <input type="text" id="player-nickname" maxlength="15" value="PiãoMestre">
       </div>
 
-      <div style="text-align: left; margin-bottom: 6px;">
-        <label style="font-size: 11px; font-weight: 800; color: #fcd34d; text-transform: uppercase;">Seu Apelido</label>
-        <input type="text" id="player-nick" maxlength="12" class="input-field" placeholder="MestreGira">
-      </div>
+      <button class="btn-action btn-primary" id="btn-play-campaign">
+        🎮 Modo Campanha (10 Ilhas vs Faísca)
+      </button>
 
-      <button onclick="startSinglePlayer()" class="btn btn-green">🏆 Iniciar Desafio (10 Ilhas vs Bot)</button>
-      <button onclick="openMultiplayer()" class="btn btn-blue">🌐 Torneio Online (2 a 4 Jogadores)</button>
+      <button class="btn-action btn-online" id="btn-open-multiplayer">
+        🌐 Batalha Online (2 a 4 Jogadores)
+      </button>
 
-      <p style="font-size: 11px; color: #94a3b8; margin-top: 10px;">⌨️ No PC: <strong>WASD / Setas</strong> para guiar e <strong>Espaço</strong> para PULAR</p>
+      <button class="btn-action btn-secondary" id="btn-open-shop">
+        🛍️ Loja de Personagens & Skins
+      </button>
     </div>
   </div>
 
-  <!-- LOJA COM PREVIEW 3D EM TEMPO REAL -->
-  <div id="screen-shop" class="screen-overlay hidden">
-    <div class="menu-card shop-container">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #475569; padding-bottom: 6px;">
-        <h2 style="font-size: 18px; font-weight: 900; color: #fde047;">Vitrine de Personagens ⭐</h2>
-        <span id="shop-coins-val" style="font-weight: 900; color: #facc15; font-size: 15px;">🪙 0</span>
+  <!-- Modal Multiplayer Online -->
+  <div id="multiplayer-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <h1>🌐 Batalha Online P2P</h1>
+      <p>Compita ao vivo com amigos pelo telemóvel ou PC</p>
+
+      <div class="input-group">
+        <label>O teu Código de Jogador (ID):</label>
+        <input type="text" id="my-peer-id" readonly value="A carregar...">
       </div>
 
-      <!-- Caixa do Visor 3D Interativo -->
-      <div id="preview-box">
-        <canvas id="preview-canvas"></canvas>
-        <div id="preview-name">Personagem Selecionado</div>
+      <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+        <button class="btn-action btn-secondary" id="btn-copy-id">📋 Copiar Código</button>
+        <button class="btn-action btn-primary" id="btn-host-room">👑 Criar Sala</button>
       </div>
 
-      <div id="shop-action-box" style="margin-bottom: 4px;"></div>
+      <hr style="border: 0; border-top: 1px solid #334155; margin: 15px 0;">
 
-      <div id="shop-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; max-height: 32vh; overflow-y: auto; padding-right: 4px;"></div>
+      <div class="input-group">
+        <label>Entrar na Sala do Amigo (Código do Anfitrião):</label>
+        <input type="text" id="join-peer-id" placeholder="Cole o código do anfitrião aqui">
+      </div>
 
-      <button onclick="closeShop()" class="btn btn-gray" style="margin-top: 6px; margin-bottom: 0;">Voltar ao Menu</button>
+      <button class="btn-action btn-online" id="btn-join-room">
+        🚀 Conectar e Entrar na Pista
+      </button>
+
+      <div id="online-lobby-status" style="margin: 10px 0; font-size: 0.85rem; color: #38bdf8;">
+        Pronto para conectar.
+      </div>
+
+      <button class="btn-action btn-secondary" id="btn-close-multiplayer">Voltar</button>
     </div>
   </div>
 
-  <!-- MULTIPLAYER MODAL -->
-  <div id="screen-online" class="screen-overlay hidden">
-    <div class="menu-card">
-      <h2 style="font-size: 22px; font-weight: 900; color: #38bdf8; margin-bottom: 6px;">Torneio Online 🌐</h2>
-      <p style="font-size: 12px; color: #bae6fd; margin-bottom: 14px;">Batalhe contra até 3 amigos online em tempo real</p>
+  <!-- Modal Loja -->
+  <div id="shop-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <h1>🛍️ Loja de Skins</h1>
+      <p>Moedas disponíveis: 🪙 <span id="shop-coins-counter">0</span></p>
 
-      <button onclick="hostOnlineRoom()" class="btn btn-blue">Criar Sala de Corrida</button>
+      <div id="shop-preview-container">
+        <!-- Canvas secundário Three.js inserido aqui via JS -->
+      </div>
 
-      <div style="margin: 10px 0; font-size: 11px; font-weight: 800; color: #fcd34d;">OU DIGITE O CÓDIGO DA SALA</div>
-      <input type="text" id="online-code-input" class="input-field" placeholder="EX: GIRA" style="text-transform: uppercase; margin-bottom: 8px;">
-      <button onclick="joinOnlineRoom()" class="btn btn-green">Entrar na Sala</button>
+      <div class="skin-grid" id="skin-list">
+        <!-- Renderizado dinamicamente -->
+      </div>
 
-      <div id="online-status-info" style="font-size: 12px; color: #fde047; margin: 10px 0; min-height: 24px;"></div>
-
-      <button id="btn-start-multi" onclick="startMultiMatch()" class="btn btn-green hidden" style="background: #15803d;">Iniciar Batalha Online!</button>
-      <button onclick="closeMultiplayer()" class="btn btn-gray" style="margin-top: 6px; margin-bottom: 0;">Voltar</button>
+      <button class="btn-action btn-primary" id="btn-equip-skin">Equipar</button>
+      <button class="btn-action btn-secondary" id="btn-close-shop">Voltar</button>
     </div>
   </div>
 
-  <!-- MODAL DE RESULTADO / FOGOS DO CAMPEÃO -->
-  <div id="screen-result" class="screen-overlay hidden">
-    <div class="menu-card">
-      <div id="res-icon" style="font-size: 52px; margin-bottom: 6px;">🎆</div>
-      <h2 id="res-title" style="font-size: 24px; font-weight: 900; color: #fde047;">Vitória Triunfal!</h2>
-      <p id="res-desc" style="font-size: 14px; color: #fef08a; margin: 10px 0 16px 0; line-height: 1.4;"></p>
-
-      <button id="res-btn-action" onclick="advanceLevel()" class="btn btn-green">Próxima Ilha →</button>
-      <button onclick="location.reload()" class="btn btn-gray" style="margin-top: 6px; margin-bottom: 0;">Menu Principal</button>
+  <!-- Modal Final / Vitória -->
+  <div id="victory-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <h1>🏆 GRANDE FINAL 🏆</h1>
+      <div id="final-trophy-text">Parabéns Miseravi, Você é o campeão!</div>
+      <p>Completou todas as 10 Ilhas com mestria suprema!</p>
+      <button class="btn-action btn-primary" id="btn-restart-game">Jogar Novamente</button>
     </div>
   </div>
 
   <script>
-    /* ==========================================================================
-       1. PERSONAGENS & PERSISTÊNCIA (LOCALSTORAGE)
-       ========================================================================== */
-    const SKINS = [
-      { id: 'classic', name: 'Madeira Clássica', price: 0, type: 'classic', bodyColor: 0xd97706, ringColor: 0x0284c7 },
-      { id: 'spongebob', name: 'Bob Esponja', price: 25, type: 'spongebob', bodyColor: 0xfacc15, ringColor: 0x78350f },
-      { id: 'toothless', name: 'Banguela (Dragão)', price: 40, type: 'toothless', bodyColor: 0x09090b, ringColor: 0x22c55e },
-      { id: 'mario', name: 'Super Mário', price: 55, type: 'mario', bodyColor: 0xef4444, ringColor: 0x1d4ed8 },
-      { id: 'sonic', name: 'Sonic Veloz', price: 70, type: 'sonic', bodyColor: 0x2563eb, ringColor: 0xef4444 },
-      { id: 'neymar', name: 'Neymar Jr #10', price: 85, type: 'neymar', bodyColor: 0xfacc15, ringColor: 0x15803d },
-      { id: 'burger', name: 'Hambúrguer Gourmet', price: 100, type: 'burger', bodyColor: 0xd97706, ringColor: 0xfacc15 },
-      { id: 'donut', name: 'Donut Glacê', price: 120, type: 'donut', bodyColor: 0xf472b6, ringColor: 0xfde047 },
-      { id: 'tire', name: 'Pneu Radial', price: 140, type: 'tire', bodyColor: 0x1f2937, ringColor: 0xe2e8f0 },
-      { id: 'ufo', name: 'Disco Alienígena', price: 180, type: 'ufo', bodyColor: 0x06b6d4, ringColor: 0x10b981 }
-    ];
-
-    const SAVE_KEY = 'giragira_grand_prix_save_v4';
-    let saveState = {
-      name: 'MestreGira',
-      coins: 0,
-      unlocked: ['classic'],
-      equipped: 'classic'
+    /* =========================================================================
+       1. ESTADO GLOBAL, PERSISTÊNCIA & CONFIGURAÇÃO
+       ========================================================================= */
+    const STORAGE_KEY = 'giragira_save_v3';
+    let userData = {
+      name: 'PiãoMestre',
+      coins: 50,
+      equippedSkin: 'classic',
+      unlockedSkins: ['classic']
     };
 
-    function loadSave() {
+    function loadSavedData() {
       try {
-        const raw = localStorage.getItem(SAVE_KEY);
-        if (raw) saveState = { ...saveState, ...JSON.parse(raw) };
-      } catch (e) {}
-      updateCoinsUI();
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          userData = Object.assign(userData, JSON.parse(saved));
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar dados locais', e);
+      }
+      document.getElementById('player-nickname').value = userData.name;
+      updateCoinHUD();
     }
 
-    function writeSave() {
+    function saveUserData() {
       try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify(saveState));
-      } catch (e) {}
-      updateCoinsUI();
+        userData.name = document.getElementById('player-nickname').value || 'PiãoMestre';
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+      } catch (e) {
+        console.warn('Erro ao guardar dados locais', e);
+      }
+      updateCoinHUD();
     }
 
-    function updateCoinsUI() {
-      const el1 = document.getElementById('menu-coins-val');
-      const el2 = document.getElementById('shop-coins-val');
-      if (el1) el1.innerText = `🪙 ${saveState.coins} Moedas`;
-      if (el2) el2.innerText = `🪙 ${saveState.coins}`;
+    function updateCoinHUD() {
+      document.getElementById('hud-coins').innerText = userData.coins;
+      document.getElementById('shop-coins-counter').innerText = userData.coins;
     }
 
-    /* ==========================================================================
-       2. PLAYER DE ÁUDIO REAL DE JOGOS FAMOSOS (MP3 STREAMING + FALLBACK)
-       ========================================================================== */
-    const REAL_TRACKS = [
-      { name: "Super Mario Bros - Overworld", url: "https://ia800504.us.archive.org/11/items/SuperMarioBrosThemeSong/SuperMarioBrosThemeSong.mp3", fallbackBpm: 140 },
-      { name: "Sonic 1 - Green Hill Zone", url: "https://ia801904.us.archive.org/21/items/green-hill-zone_202206/Green%20Hill%20Zone.mp3", fallbackBpm: 150 },
-      { name: "Donkey Kong Country - Jungle Groove", url: "https://ia600908.us.archive.org/16/items/dkc-ost/02%20-%20Simian%20Acres%20%28Title%20Screen%29.mp3", fallbackBpm: 130 },
-      { name: "Crash Bandicoot - N. Sanity Beach", url: "https://ia601309.us.archive.org/26/items/crash-bandicoot-ps1-soundtrack/01%20N.%20Sanity%20Beach.mp3", fallbackBpm: 140 },
-      { name: "The Legend of Zelda - Main Theme", url: "https://ia800108.us.archive.org/10/items/TheLegendOfZeldaThemeSong/TheLegendOfZeldaThemeSong.mp3", fallbackBpm: 135 },
-      { name: "Minecraft - Sweden / Calmaria", url: "https://ia801804.us.archive.org/11/items/c418-sweden/C418%20-%20Sweden.mp3", fallbackBpm: 120 },
-      { name: "Mega Man 2 - Dr. Wily Stage 1", url: "https://ia600305.us.archive.org/10/items/megaman2_ost/08_dr_wily_stage_1.mp3", fallbackBpm: 160 },
-      { name: "Kirby Super Star - Green Greens", url: "https://ia600708.us.archive.org/12/items/kirby-super-star-ost/03%20Green%20Greens.mp3", fallbackBpm: 145 },
-      { name: "Pokémon Red & Blue - Battle Theme", url: "https://ia800706.us.archive.org/30/items/pokemon-red-blue-ost/05%20Battle%20%28Vs%20Wild%20Pokemon%29.mp3", fallbackBpm: 155 },
-      { name: "Tetris - Korobeiniki Grand Final", url: "https://ia800301.us.archive.org/14/items/TetrisThemeMusic/Tetris.mp3", fallbackBpm: 165 }
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
+
+    /* =========================================================================
+       2. LISTA DAS 10 ILHAS LENDÁRIAS & DEFINIÇÃO DE SKINS
+       ========================================================================= */
+    const ISLANDS = [
+      { name: 'Ilha 1: Praia N. Sanity', sky: 0x38bdf8, water: 0x0ea5e9, road: 0x854d0e, hazard: 'coqueiros' },
+      { name: 'Ilha 2: Vale das Ruínas', sky: 0x0284c7, water: 0x0369a1, road: 0x475569, hazard: 'tochas' },
+      { name: 'Ilha 3: Green Hill Celestial', sky: 0x60a5fa, water: 0x2563eb, road: 0x15803d, hazard: 'flores' },
+      { name: 'Ilha 4: Templo Vulcânico', sky: 0x7f1d1d, water: 0xef4444, road: 0x1c1917, hazard: 'lava' },
+      { name: 'Ilha 5: Mina de Cristais Neon', sky: 0x581c87, water: 0x9333ea, road: 0x0f172a, hazard: 'cristais' },
+      { name: 'Ilha 6: Ponte Celestial', sky: 0xbae6fd, water: 0x38bdf8, road: 0xf8fafc, hazard: 'nuvens' },
+      { name: 'Ilha 7: Fábrica Química', sky: 0x134e4a, water: 0x14b8a6, road: 0x334155, hazard: 'engrenagens' },
+      { name: 'Ilha 8: Deserto das Pirâmides', sky: 0xf59e0b, water: 0xd97706, road: 0xca8a04, hazard: 'piramides' },
+      { name: 'Ilha 9: Geleira Ártica', sky: 0xa5f3fc, water: 0x06b6d4, road: 0xe0f2fe, hazard: 'gelo' },
+      { name: 'Ilha 10: O Coliseu Cósmico', sky: 0x09090b, water: 0x3b82f6, road: 0xeab308, hazard: 'estrelas' }
     ];
 
-    let audioEnabled = true;
-    let bgmAudioEl = null;
-    let synthAudioCtx = null;
-    let synthTimer = null;
-    let isUsingFallback = false;
+    const SKINS_CATALOG = [
+      { id: 'classic', name: 'Madeira Clássico', price: 0, color: 0x92400e },
+      { id: 'bob_esponja', name: 'Bob Esponja', price: 30, color: 0xfacc15 },
+      { id: 'banguela', name: 'Banguela (Fúria)', price: 40, color: 0x0f172a },
+      { id: 'sonic', name: 'Sonic Veloz', price: 45, color: 0x2563eb },
+      { id: 'mario', name: 'Super Mário', price: 50, color: 0xdc2626 },
+      { id: 'neymar', name: 'Neymar Jr #10', price: 55, color: 0xeab308 },
+      { id: 'donut', name: 'Donut Rosquinha', price: 25, color: 0xf472b6 },
+      { id: 'ovni', name: 'Disco OVNI', price: 60, color: 0x10b981 }
+    ];
 
-    function initAudioEngine() {
-      bgmAudioEl = document.getElementById('bgm-player');
-      bgmAudioEl.volume = 0.65;
-
-      // Se falhar o streaming, ativa o sintetizador procedural de emergência
-      bgmAudioEl.onerror = () => {
-        console.warn("Áudio streaming falhou, acionando sintetizador procedural...");
-        startSynthFallback(currentLevel);
-      };
-    }
-
-    function playRealTrack(levelIdx) {
-      if (!audioEnabled) return;
-      const track = REAL_TRACKS[levelIdx % REAL_TRACKS.length];
-      document.getElementById('music-track-name').innerText = track.name;
-
-      if (synthTimer) clearInterval(synthTimer);
-      isUsingFallback = false;
-
-      if (bgmAudioEl) {
-        bgmAudioEl.pause();
-        bgmAudioEl.src = track.url;
-        bgmAudioEl.load();
-        bgmAudioEl.play().catch(e => {
-          // Autoplay travado ou erro de conexão: usa sintetizador FM
-          startSynthFallback(levelIdx);
-        });
+    /* =========================================================================
+       3. SINTETIZADOR DE ÁUDIO WEB AUDIO API (FALLBACK E MÚSICAS ESTILO ARCADE)
+       ========================================================================= */
+    class RetroSoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.melodyInterval = null;
       }
-    }
-
-    function startSynthFallback(levelIdx) {
-      isUsingFallback = true;
-      if (!synthAudioCtx) {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) synthAudioCtx = new AC();
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
       }
-      if (synthAudioCtx && synthAudioCtx.state === 'suspended') {
-        synthAudioCtx.resume().catch(() => {});
-      }
-      if (synthTimer) clearInterval(synthTimer);
-
-      const notes = [261.63, 329.63, 392.0, 523.25, 440.0, 349.23, 293.66, 392.0];
-      let step = 0;
-
-      synthTimer = setInterval(() => {
-        if (!audioEnabled || !synthAudioCtx || synthAudioCtx.state !== 'running') return;
+      playJump() {
+        if (!this.enabled || !this.ctx) return;
         try {
-          const now = synthAudioCtx.currentTime;
-          const osc = synthAudioCtx.createOscillator();
-          const gain = synthAudioCtx.createGain();
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
           osc.type = 'triangle';
-          osc.frequency.setValueAtTime(notes[step % notes.length], now);
-
-          gain.gain.setValueAtTime(0.04, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-
+          osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(520, this.ctx.currentTime + 0.18);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
           osc.connect(gain);
-          gain.connect(synthAudioCtx.destination);
-          osc.start(now);
-          osc.stop(now + 0.2);
-          step++;
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.18);
         } catch (e) {}
-      }, 180);
-    }
-
-    function toggleAudio() {
-      audioEnabled = !audioEnabled;
-      document.getElementById('audio-icon').innerText = audioEnabled ? '🔊' : '🔇';
-      if (bgmAudioEl) {
-        if (audioEnabled) {
-          if (!isUsingFallback) bgmAudioEl.play().catch(() => {});
-        } else {
-          bgmAudioEl.pause();
-          if (synthTimer) clearInterval(synthTimer);
-        }
+      }
+      playCoin() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(980, this.ctx.currentTime);
+          osc.frequency.setValueAtTime(1320, this.ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.22);
+        } catch (e) {}
+      }
+      playExplosion() {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.3);
+        } catch (e) {}
+      }
+      startIslandTheme(islandIndex) {
+        if (this.melodyInterval) clearInterval(this.melodyInterval);
+        if (!this.enabled || !this.ctx) return;
+        
+        const scales = [
+          [261, 329, 392, 523], // C Maior
+          [293, 349, 440, 587], // D Menor
+          [329, 392, 493, 659], // E Menor
+          [349, 440, 523, 698], // F Maior
+          [392, 493, 587, 783], // G Maior
+          [440, 523, 659, 880], // A Menor
+          [277, 349, 415, 554], // C# Exótico
+          [311, 392, 466, 622], // Eb Místico
+          [246, 311, 370, 493], // B Gélido
+          [523, 659, 783, 1046] // C Cósmico Triunfal
+        ];
+        const notes = scales[islandIndex % scales.length];
+        let step = 0;
+        this.melodyInterval = setInterval(() => {
+          if (!this.enabled || !this.ctx) return;
+          try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = (step % 2 === 0) ? 'triangle' : 'sine';
+            const note = notes[step % notes.length];
+            osc.frequency.setValueAtTime(note, this.ctx.currentTime);
+            gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.16);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.16);
+            step++;
+          } catch(e) {}
+        }, 220);
+      }
+      stopTheme() {
+        if (this.melodyInterval) clearInterval(this.melodyInterval);
       }
     }
+    const audioSys = new RetroSoundEngine();
 
-    function playSfx(type) {
-      if (!audioEnabled) return;
-      try {
-        if (!synthAudioCtx) {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (AC) synthAudioCtx = new AC();
-        }
-        if (synthAudioCtx.state === 'suspended') synthAudioCtx.resume();
-        const now = synthAudioCtx.currentTime;
+    /* =========================================================================
+       4. CONSTRUÇÃO VISUAL 3D (THREE.JS)
+       ========================================================================= */
+    const canvas = document.getElementById('game-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-        if (type === 'jump') {
-          const osc = synthAudioCtx.createOscillator();
-          const gain = synthAudioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(280, now);
-          osc.frequency.exponentialRampToValueAtTime(840, now + 0.18);
-          gain.gain.setValueAtTime(0.28, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-          osc.connect(gain);
-          gain.connect(synthAudioCtx.destination);
-          osc.start(now);
-          osc.stop(now + 0.19);
-        } else if (type === 'coin') {
-          const osc = synthAudioCtx.createOscillator();
-          const gain = synthAudioCtx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(987.77, now);
-          osc.frequency.setValueAtTime(1318.51, now + 0.08);
-          gain.gain.setValueAtTime(0.26, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-          osc.connect(gain);
-          gain.connect(synthAudioCtx.destination);
-          osc.start(now);
-          osc.stop(now + 0.21);
-        } else if (type === 'bomb') {
-          const osc = synthAudioCtx.createOscillator();
-          const gain = synthAudioCtx.createGain();
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(180, now);
-          osc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
-          gain.gain.setValueAtTime(0.45, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-          osc.connect(gain);
-          gain.connect(synthAudioCtx.destination);
-          osc.start(now);
-          osc.stop(now + 0.36);
-        } else if (type === 'firework') {
-          const osc = synthAudioCtx.createOscillator();
-          const gain = synthAudioCtx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(340, now);
-          osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
-          gain.gain.setValueAtTime(0.35, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-          osc.connect(gain);
-          gain.connect(synthAudioCtx.destination);
-          osc.start(now);
-          osc.stop(now + 0.31);
-        }
-      } catch (e) {}
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x38bdf8);
+    scene.fog = new THREE.FogExp2(0x38bdf8, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    dirLight.position.set(30, 60, 20);
+    scene.add(dirLight);
+
+    // Ajuste dinâmico de redimensionamento do ecrã
+    window.addEventListener('resize', onWindowResize, false);
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    /* ==========================================================================
-       3. 10 ILHAS COM LOOPS, BOMBAS, DINOSSAUROS, DRAGÕES E PTERODÁCTILOS
-       ========================================================================== */
+    // Gerador de Modelos 3D de Piões
+    function createSpinnerMesh(skinId) {
+      const group = new THREE.Group();
+
+      const tipGeo = new THREE.ConeGeometry(0.3, 0.6, 16);
+      const tipMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
+      const tipMesh = new THREE.Mesh(tipGeo, tipMat);
+      tipMesh.rotation.x = Math.PI;
+      tipMesh.position.y = 0.3;
+      group.add(tipMesh);
+
+      const skinData = SKINS_CATALOG.find(s => s.id === skinId) || SKINS_CATALOG[0];
+      const bodyMat = new THREE.MeshStandardMaterial({ color: skinData.color, roughness: 0.3, metalness: 0.2 });
+
+      if (skinId === 'bob_esponja') {
+        const bodyGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+        const spongeMesh = new THREE.Mesh(bodyGeo, bodyMat);
+        spongeMesh.position.y = 1.0;
+        group.add(spongeMesh);
+
+        // Olhos
+        const eyeGeo = new THREE.SphereGeometry(0.2, 12, 12);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const pupilMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+        
+        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        leftEye.position.set(-0.3, 1.2, 0.6);
+        const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), pupilMat);
+        leftPupil.position.set(-0.3, 1.2, 0.75);
+        
+        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rightEye.position.set(0.3, 1.2, 0.6);
+        const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), pupilMat);
+        rightPupil.position.set(0.3, 1.2, 0.75);
+
+        group.add(leftEye, leftPupil, rightEye, rightPupil);
+
+      } else if (skinId === 'banguela') {
+        const headGeo = new THREE.SphereGeometry(0.8, 16, 16);
+        const head = new THREE.Mesh(headGeo, bodyMat);
+        head.position.y = 0.9;
+        head.scale.set(1.1, 0.7, 1.2);
+        group.add(head);
+
+        // Olhos Felinos Verdes
+        const eyeGeo = new THREE.SphereGeometry(0.2, 10, 10);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+        const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeL.position.set(-0.35, 1.0, 0.6);
+        const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeR.position.set(0.35, 1.0, 0.6);
+        group.add(eyeL, eyeR);
+
+      } else if (skinId === 'sonic') {
+        const bodyGeo = new THREE.SphereGeometry(0.7, 16, 16);
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.9;
+        group.add(body);
+
+        // Espinhos traseiros
+        for (let i = 0; i < 4; i++) {
+          const spikeGeo = new THREE.ConeGeometry(0.2, 0.7, 8);
+          const spike = new THREE.Mesh(spikeGeo, bodyMat);
+          spike.rotation.x = -Math.PI / 3;
+          spike.position.set(0, 0.8 + i * 0.15, -0.6 - i * 0.1);
+          group.add(spike);
+        }
+
+      } else if (skinId === 'mario') {
+        const bodyGeo = new THREE.SphereGeometry(0.75, 16, 16);
+        const body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ color: 0x1d4ed8 }));
+        body.position.y = 0.8;
+        group.add(body);
+
+        // Boina Vermelha
+        const capGeo = new THREE.CylinderGeometry(0.7, 0.75, 0.35, 16);
+        const capMat = new THREE.MeshStandardMaterial({ color: 0xdc2626 });
+        const cap = new THREE.Mesh(capGeo, capMat);
+        cap.position.y = 1.35;
+        group.add(cap);
+
+      } else if (skinId === 'neymar') {
+        const bodyGeo = new THREE.CylinderGeometry(0.7, 0.4, 1.0, 16);
+        const shirtMat = new THREE.MeshStandardMaterial({ color: 0xfacc15 }); // Amarelinha #10
+        const shirt = new THREE.Mesh(bodyGeo, shirtMat);
+        shirt.position.y = 0.9;
+        group.add(shirt);
+
+        const hairGeo = new THREE.BoxGeometry(0.2, 0.45, 0.7);
+        const hairMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+        const hair = new THREE.Mesh(hairGeo, hairMat);
+        hair.position.y = 1.5;
+        group.add(hair);
+
+      } else if (skinId === 'donut') {
+        const donutGeo = new THREE.TorusGeometry(0.65, 0.35, 16, 32);
+        const donutMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.4 });
+        const donut = new THREE.Mesh(donutGeo, donutMat);
+        donut.rotation.x = Math.PI / 2;
+        donut.position.y = 0.9;
+        group.add(donut);
+
+      } else if (skinId === 'ovni') {
+        const discGeo = new THREE.CylinderGeometry(1.1, 1.1, 0.25, 24);
+        const discMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 });
+        const disc = new THREE.Mesh(discGeo, discMat);
+        disc.position.y = 0.8;
+        
+        const domeGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const domeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+        const dome = new THREE.Mesh(domeGeo, domeMat);
+        dome.position.y = 1.0;
+        group.add(disc, dome);
+
+      } else {
+        // Clássico
+        const coneGeo = new THREE.CylinderGeometry(0.8, 0.2, 1.0, 16);
+        const coneMesh = new THREE.Mesh(coneGeo, bodyMat);
+        coneMesh.position.y = 0.9;
+        group.add(coneMesh);
+      }
+
+      return group;
+    }
+
+    /* =========================================================================
+       5. SISTEMA DE PISTA LARGA (12M), MOEDAS, HAZARDS E FAUNA VIVA
+       ========================================================================= */
+    let currentIslandIndex = 0;
+    let trackBlocks = [];
+    let trackCoins = [];
+    let trackHazards = [];
+    let ambientCreatures = [];
     const TRACK_WIDTH = 12.0;
 
-    const ISLANDS_CONFIG = [
-      {
-        id: 1, title: "Ilha 1: Praia N. Sanity Tropical",
-        skyColor: 0x38bdf8, floorColor: 0xd97706, finishColor: 0x16a34a,
-        waterColor: 0x0284c7, waterY: -8.0,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: 5, y: 0, z: -38, w: 22, d: TRACK_WIDTH },
-          { x: 10, y: 0, z: -68, w: TRACK_WIDTH, d: 52 },
-          { x: 10, y: 0, z: -94, w: 14, d: 24, isFinish: true }
-        ],
-        coins: [{ x: -2, z: -10 }, { x: 2, z: -18 }, { x: 5, z: -38 }, { x: 10, z: -60 }, { x: 10, z: -78 }],
-        bombs: [{ x: 1, z: -25 }, { x: 8, z: -55 }],
-        loops: [{ x: 10, y: 1.5, z: -65, r: 6 }]
-      },
-      {
-        id: 2, title: "Ilha 2: Vale dos Pterodáctilos e Ruínas",
-        skyColor: 0x0284c7, floorColor: 0x57534e, finishColor: 0x0284c7,
-        waterColor: 0x0f766e, waterY: -8.0,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: 0, y: 0, z: -48, w: TRACK_WIDTH, d: 26 },
-          { x: -6, y: 0, z: -72, w: 24, d: TRACK_WIDTH },
-          { x: -12, y: 0, z: -102, w: TRACK_WIDTH, d: 52 },
-          { x: -12, y: 0, z: -128, w: 14, d: 24, isFinish: true }
-        ],
-        coins: [{ x: 0, z: -14 }, { x: 0, z: -48 }, { x: -6, z: -72 }, { x: -12, z: -95 }, { x: -12, z: -112 }],
-        bombs: [{ x: 0, z: -45 }, { x: -6, z: -75 }, { x: -12, z: -98 }],
-        loops: [{ x: 0, y: 1.5, z: -48, r: 6 }]
-      },
-      {
-        id: 3, title: "Ilha 3: Green Hill Celestial dos Dinossauros",
-        skyColor: 0x60a5fa, floorColor: 0x92400e, finishColor: 0x22c55e,
-        waterColor: 0x3b82f6, waterY: -8.0,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: 6, y: 0, z: -36, w: 24, d: TRACK_WIDTH },
-          { x: 12, y: 0, z: -68, w: TRACK_WIDTH, d: 52 },
-          { x: 4, y: 0, z: -100, w: 26, d: TRACK_WIDTH },
-          { x: -4, y: 0, z: -128, w: TRACK_WIDTH, d: 48 },
-          { x: -4, y: 0, z: -152, w: 14, d: 24, isFinish: true }
-        ],
-        coins: [{ x: 0, z: -14 }, { x: 6, z: -36 }, { x: 12, z: -68 }, { x: 4, z: -100 }, { x: -4, z: -128 }],
-        bombs: [{ x: 6, z: -36 }, { x: 12, z: -60 }, { x: -4, z: -120 }],
-        loops: [{ x: 12, y: 1.5, z: -68, r: 6.5 }]
-      },
-      {
-        id: 4, title: "Ilha 4: Cânion Vulcânico do Dragão de Fogo",
-        skyColor: 0x450a0a, floorColor: 0x1c1917, finishColor: 0xd97706,
-        waterColor: 0xd97706, waterY: -7.5,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: 0, y: 0, z: -64, w: 11, d: 68 },
-          { x: 0, y: 0, z: -128, w: 11, d: 54 },
-          { x: 0, y: 0, z: -164, w: 14, d: 26, isFinish: true }
-        ],
-        coins: [{ x: -2, z: -20 }, { x: 2, z: -50 }, { x: -2, z: -80 }, { x: 2, z: -110 }, { x: 0, z: -140 }],
-        bombs: [{ x: 0, z: -40 }, { x: -2, z: -70 }, { x: 2, z: -105 }, { x: 0, z: -135 }],
-        loops: [{ x: 0, y: 2.0, z: -64, r: 7 }]
-      },
-      {
-        id: 5, title: "Ilha 5: Caverna de Cristais e Pterodáctilos",
-        skyColor: 0x1e1b4b, floorColor: 0x312e81, finishColor: 0x06b6d4,
-        waterColor: 0x4f46e5, waterY: -8.0,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: 0, y: 0, z: -64, w: TRACK_WIDTH, d: 70 },
-          { x: 0, y: 0, z: -124, w: TRACK_WIDTH, d: 46 },
-          { x: 5, y: 0, z: -152, w: 22, d: TRACK_WIDTH },
-          { x: 10, y: 0, z: -180, w: 14, d: 26, isFinish: true }
-        ],
-        coins: [{ x: 0, z: -15 }, { x: -2, z: -50 }, { x: 2, z: -80 }, { x: 0, z: -120 }, { x: 5, z: -152 }],
-        bombs: [{ x: -1, z: -55 }, { x: 1, z: -90 }, { x: 0, z: -130 }, { x: 5, z: -155 }],
-        loops: [{ x: 0, y: 1.8, z: -124, r: 6.5 }]
-      },
-      {
-        id: 6, title: "Ilha 6: Ponte Celestial com Ninho de Dragão",
-        skyColor: 0x93c5fd, floorColor: 0xf8fafc, finishColor: 0xfacc15,
-        waterColor: 0xe0f2fe, waterY: -8.0,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: 0, y: 1.2, z: -38, w: TRACK_WIDTH, d: 22 },
-          { x: 0, y: 2.4, z: -62, w: TRACK_WIDTH, d: 22 },
-          { x: 0, y: 1.5, z: -92, w: TRACK_WIDTH, d: 34 },
-          { x: -6, y: 0.8, z: -120, w: 22, d: TRACK_WIDTH },
-          { x: -12, y: 0, z: -152, w: TRACK_WIDTH, d: 54 },
-          { x: -12, y: 0, z: -198, w: 14, d: 26, isFinish: true }
-        ],
-        coins: [{ x: 0, z: -14 }, { x: 0, z: -38 }, { x: 0, z: -62 }, { x: -6, z: -120 }, { x: -12, z: -152 }],
-        bombs: [{ x: 0, z: -38 }, { x: 0, z: -92 }, { x: -6, z: -120 }, { x: -12, z: -160 }],
-        loops: [{ x: 0, y: 3.5, z: -62, r: 7 }]
-      },
-      {
-        id: 7, title: "Ilha 7: Chemical Plant com Dinossauro Cibernético",
-        skyColor: 0x022c22, floorColor: 0x064e3b, finishColor: 0x0284c7,
-        waterColor: 0x059669, waterY: -8.0,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: 0, y: 0, z: -44, w: TRACK_WIDTH, d: 28 },
-          { x: 7, y: 0, z: -74, w: 24, d: TRACK_WIDTH },
-          { x: 14, y: 0, z: -110, w: TRACK_WIDTH, d: 64 },
-          { x: 7, y: 0, z: -154, w: 24, d: TRACK_WIDTH },
-          { x: 0, y: 0, z: -210, w: 14, d: 26, isFinish: true }
-        ],
-        coins: [{ x: -2, z: -15 }, { x: 2, z: -44 }, { x: 7, z: -74 }, { x: 14, z: -110 }, { x: 7, z: -154 }],
-        bombs: [{ x: 0, z: -44 }, { x: 7, z: -74 }, { x: 14, z: -100 }, { x: 14, z: -125 }, { x: 7, z: -154 }],
-        loops: [{ x: 14, y: 2.0, z: -110, r: 7.5 }]
-      },
-      {
-        id: 8, title: "Ilha 8: Deserto das Pirâmides e T-Rex",
-        skyColor: 0x78350f, floorColor: 0xb45309, finishColor: 0xfacc15,
-        waterColor: 0x92400e, waterY: -8.0,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: -6, y: 0, z: -38, w: 24, d: TRACK_WIDTH },
-          { x: -12, y: 0, z: -70, w: TRACK_WIDTH, d: 48 },
-          { x: 0, y: 0, z: -106, w: 34, d: TRACK_WIDTH },
-          { x: 12, y: 0, z: -140, w: TRACK_WIDTH, d: 52 },
-          { x: 0, y: 0, z: -230, w: 14, d: 26, isFinish: true }
-        ],
-        coins: [{ x: 0, z: -14 }, { x: -6, z: -38 }, { x: -12, z: -70 }, { x: 0, z: -106 }, { x: 12, z: -140 }],
-        bombs: [{ x: -6, z: -38 }, { x: -12, z: -65 }, { x: 0, z: -106 }, { x: 12, z: -135 }, { x: 12, z: -155 }],
-        loops: [{ x: -12, y: 2.0, z: -70, r: 7 }]
-      },
-      {
-        id: 9, title: "Ilha 9: Geleira Ártica do Dragão de Gelo",
-        skyColor: 0x0284c7, floorColor: 0xbae6fd, finishColor: 0x0ea5e9,
-        waterColor: 0x0369a1, waterY: -8.0,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: 0, y: 0, z: -44, w: TRACK_WIDTH, d: 20 },
-          { x: 6, y: 0, z: -76, w: TRACK_WIDTH, d: 20 },
-          { x: -5, y: 1.0, z: -110, w: TRACK_WIDTH, d: 20 },
-          { x: 3, y: 1.8, z: -144, w: TRACK_WIDTH, d: 20 },
-          { x: 0, y: 0, z: -248, w: 14, d: 26, isFinish: true }
-        ],
-        coins: [{ x: 0, z: -14 }, { x: 0, z: -44 }, { x: 6, z: -76 }, { x: -5, z: -110 }, { x: 3, z: -144 }],
-        bombs: [{ x: 0, z: -44 }, { x: 6, z: -76 }, { x: -5, z: -110 }, { x: 3, z: -144 }, { x: 0, z: -200 }],
-        loops: [{ x: -5, y: 3.0, z: -110, r: 7.5 }]
-      },
-      {
-        id: 10, title: "Ilha 10: O Coliseu Cósmico dos Campeões",
-        skyColor: 0x030712, floorColor: 0xfacc15, finishColor: 0x38bdf8,
-        waterColor: 0x4f46e5, waterY: -8.0,
-        blocks: [
-          { x: 0, y: 0, z: -14, w: TRACK_WIDTH, d: 28 },
-          { x: 7, y: 0, z: -38, w: 26, d: TRACK_WIDTH },
-          { x: 14, y: 0, z: -76, w: TRACK_WIDTH, d: 60 },
-          { x: 4, y: 1.5, z: -118, w: 32, d: TRACK_WIDTH },
-          { x: -7, y: 0, z: -160, w: TRACK_WIDTH, d: 58 },
-          { x: 0, y: 0, z: -285, w: 16, d: 34, isFinish: true }
-        ],
-        coins: [{ x: 0, z: -14 }, { x: 7, z: -38 }, { x: 14, z: -76 }, { x: 4, z: -118 }, { x: -7, z: -160 }],
-        bombs: [{ x: 7, z: -38 }, { x: 14, z: -65 }, { x: 14, z: -95 }, { x: 4, z: -118 }, { x: -7, z: -145 }, { x: -7, z: -175 }],
-        loops: [{ x: 14, y: 2.2, z: -76, r: 8 }]
-      }
-    ];
+    function buildIslandWorld(islandIndex) {
+      // Limpeza de objetos prévios
+      trackBlocks.forEach(b => scene.remove(b.mesh));
+      trackCoins.forEach(c => scene.remove(c.mesh));
+      trackHazards.forEach(h => scene.remove(h.mesh));
+      ambientCreatures.forEach(cr => scene.remove(cr.mesh));
+      
+      trackBlocks = [];
+      trackCoins = [];
+      trackHazards = [];
+      ambientCreatures = [];
 
-    /* ==========================================================================
-       4. MODELAGEM 3D DETALHADA E FIEL DOS PERSONAGENS
-       ========================================================================== */
-    function createDetailedSkinMesh(skinId, label, isPreview = false) {
-      const g = new THREE.Group();
-      const sConf = SKINS.find(s => s.id === skinId) || SKINS[0];
+      const config = ISLANDS[islandIndex];
+      document.getElementById('hud-island').innerText = config.name;
 
-      // Ponta de ferro cônica na base
-      const tipGeo = new THREE.ConeGeometry(0.2, 0.45, 16);
-      tipGeo.rotateX(Math.PI);
-      const tip = new THREE.Mesh(tipGeo, new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 }));
-      tip.position.y = 0.22;
-      g.add(tip);
+      // Cor do Céu e Nevoeiro
+      scene.background.setHex(config.sky);
+      scene.fog.color.setHex(config.sky);
 
-      const type = sConf.type;
-      if (type === 'classic') {
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.25, 0.58, 20), new THREE.MeshStandardMaterial({ color: sConf.bodyColor, roughness: 0.4 }));
-        body.position.y = 0.72;
-        g.add(body);
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.08, 8, 20).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: sConf.ringColor }));
-        ring.position.y = 0.88;
-        g.add(ring);
-      } else if (type === 'spongebob') {
-        // Bob Esponja: Esponja amarela com poros, olhos expressivos, nariz saliente, gravata e calça
-        const sponge = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 1.0), new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.7 }));
-        sponge.position.y = 0.85;
-        g.add(sponge);
-        // Calça marrom e camisa branca
-        const shirt = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.15, 1.02), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        shirt.position.y = 0.48;
-        g.add(shirt);
-        const pants = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.18, 1.02), new THREE.MeshStandardMaterial({ color: 0x78350f }));
-        pants.position.y = 0.35;
-        g.add(pants);
-        // Olhos azuis grandes com fundo branco
-        [-0.24, 0.24].forEach(ox => {
-          const eyeW = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-          eyeW.position.set(ox, 0.9, 0.52);
-          g.add(eyeW);
-          const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshBasicMaterial({ color: 0x0284c7 }));
-          pupil.position.set(ox, 0.9, 0.64);
-          g.add(pupil);
+      // Pista Suspensa (Sequência Modular com Curvas e Saltos)
+      let curZ = 0;
+      let curX = 0;
+
+      for (let i = 0; i < 22; i++) {
+        const blockLength = (i === 7 || i === 14) ? 14 : 20; // Vãos para salto obrigatório
+        if (i === 7 || i === 14) {
+          curZ -= 12; // Salto vazio
+        }
+
+        const geo = new THREE.BoxGeometry(TRACK_WIDTH, 1.5, blockLength);
+        const mat = new THREE.MeshStandardMaterial({ 
+          color: config.road, 
+          roughness: 0.6,
+          metalness: 0.1 
         });
-        // Nariz saliente
-        const nose = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.35, 8).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xfacc15 }));
-        nose.position.set(0, 0.82, 0.65);
-        g.add(nose);
-        // Gravata vermelha
-        const tie = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.22, 4), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-        tie.position.set(0, 0.48, 0.53);
-        g.add(tie);
-      } else if (type === 'toothless') {
-        // Banguela (Fúria da Noite): Cabeça preta escamada, olhos verdes felinos, chifres e asas dorsais
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 14), new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.2, metalness: 0.3 }));
-        head.position.y = 0.78;
-        g.add(head);
-        // Olhos verdes reptilianos expressivos
-        [-0.34, 0.34].forEach(ox => {
-          const eye = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), new THREE.MeshBasicMaterial({ color: 0x22c55e }));
-          eye.position.set(ox, 0.85, 0.75);
-          g.add(eye);
-          const slit = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.24, 0.05), new THREE.MeshBasicMaterial({ color: 0x000000 }));
-          slit.position.set(ox, 0.85, 0.85);
-          g.add(slit);
+        const block = new THREE.Mesh(geo, mat);
+        block.position.set(curX, 0, curZ - blockLength / 2);
+        scene.add(block);
+
+        trackBlocks.push({
+          mesh: block,
+          minX: curX - TRACK_WIDTH / 2,
+          maxX: curX + TRACK_WIDTH / 2,
+          minZ: block.position.z - blockLength / 2,
+          maxZ: block.position.z + blockLength / 2,
+          y: 0
         });
-        // Chifres / orelhas dorsais
-        [-0.38, 0.38].forEach(ox => {
-          const horn = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.55, 6), new THREE.MeshStandardMaterial({ color: 0x18181b }));
-          horn.rotation.x = -0.45;
-          horn.rotation.z = ox > 0 ? -0.35 : 0.35;
-          horn.position.set(ox, 1.35, -0.15);
-          g.add(horn);
-        });
-        // Pequenas asas dorsais de dragão
-        [-0.85, 0.85].forEach(ox => {
-          const wing = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.06, 0.45), new THREE.MeshStandardMaterial({ color: 0x09090b }));
-          wing.rotation.z = ox > 0 ? -0.3 : 0.3;
-          wing.position.set(ox, 0.75, -0.4);
-          g.add(wing);
-        });
-      } else if (type === 'mario') {
-        // Super Mario: Boné vermelho com aba, nariz esférico, bigode volumoso e macacão azul
-        const overalls = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.7, 0.5, 16), new THREE.MeshStandardMaterial({ color: 0x1d4ed8 }));
-        overalls.position.y = 0.55;
-        g.add(overalls);
-        const face = new THREE.Mesh(new THREE.SphereGeometry(0.85, 14, 12), new THREE.MeshStandardMaterial({ color: 0xffedd5 }));
-        face.position.y = 0.75;
-        g.add(face);
-        // Boné vermelho com aba
-        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.92, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
-        cap.position.y = 0.95;
-        g.add(cap);
-        const brim = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.08, 16), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
-        brim.position.set(0, 0.95, 0.25);
-        g.add(brim);
-        // Nariz grande
-        const nose = new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 10), new THREE.MeshStandardMaterial({ color: 0xfecdd3 }));
-        nose.position.set(0, 0.85, 0.8);
-        g.add(nose);
-        // Bigode volumoso
-        const mustache = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 0.2), new THREE.MeshStandardMaterial({ color: 0x1f2937 }));
-        mustache.position.set(0, 0.7, 0.82);
-        g.add(mustache);
-      } else if (type === 'sonic') {
-        // Sonic: Cabeça azul esférica, 6 espinhos aerodinâmicos, focinho bege e olhos conectados
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.88, 16, 16), new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.3 }));
-        head.position.y = 0.82;
-        g.add(head);
-        // Focinho bege
-        const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 12), new THREE.MeshStandardMaterial({ color: 0xfde68a }));
-        muzzle.position.set(0, 0.72, 0.65);
-        g.add(muzzle);
-        const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshBasicMaterial({ color: 0x000000 }));
-        noseTip.position.set(0, 0.82, 0.95);
-        g.add(noseTip);
-        // 6 Espinhos icônicos aerodinâmicos traseiros
-        [-0.32, 0, 0.32].forEach((ox, i) => {
-          [0.95, 0.65].forEach((oy) => {
-            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.75, 6), new THREE.MeshStandardMaterial({ color: 0x1e40af }));
-            spike.rotation.x = -Math.PI / 2.3;
-            spike.position.set(ox, oy, -0.75);
-            g.add(spike);
-          });
-        });
-        // Tênis vermelho na base
-        const shoes = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.12, 8, 16).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
-        shoes.position.y = 0.42;
-        g.add(shoes);
-      } else if (type === 'neymar') {
-        // Neymar Jr #10: Camisa amarela #10 da seleção, moicano estilizado e faixa
-        const jersey = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.5, 0.6, 16), new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 }));
-        jersey.position.y = 0.65;
-        g.add(jersey);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.75, 14, 12), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
-        head.position.y = 1.05;
-        g.add(head);
-        // Faixa branca na cabeça
-        const headband = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.08, 8, 16).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        headband.position.y = 1.25;
-        g.add(headband);
-        // Moicano escuro moderno
-        const mohawk = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.45, 0.8), new THREE.MeshStandardMaterial({ color: 0x18181b }));
-        mohawk.position.set(0, 1.55, -0.05);
-        g.add(mohawk);
-      } else if (type === 'tire') {
-        const tire = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.35, 12, 20).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 }));
-        tire.position.y = 0.7;
-        g.add(tire);
-        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.25, 14), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 }));
-        hub.position.y = 0.75;
-        g.add(hub);
-      } else if (type === 'burger') {
-        const bunMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.6 });
-        const bunB = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.75, 0.25, 16), bunMat);
-        bunB.position.y = 0.5;
-        g.add(bunB);
-        const meat = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.2, 16), new THREE.MeshStandardMaterial({ color: 0x451a03 }));
-        meat.position.y = 0.68;
-        g.add(meat);
-        const bunT = new THREE.Mesh(new THREE.SphereGeometry(0.88, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), bunMat);
-        bunT.position.y = 0.78;
-        g.add(bunT);
-      } else if (type === 'donut') {
-        const dMesh = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.3, 12, 20).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xf59e0b }));
-        dMesh.position.y = 0.7;
-        g.add(dMesh);
-        const glaze = new THREE.Mesh(new THREE.TorusGeometry(0.73, 0.22, 12, 20).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.2 }));
-        glaze.position.y = 0.82;
-        g.add(glaze);
-      } else if (type === 'ufo') {
-        const saucer = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 0.2, 0.2, 20), new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 }));
-        saucer.position.y = 0.65;
-        g.add(saucer);
-        const dome = new THREE.Mesh(new THREE.SphereGeometry(0.6, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x34d399, transparent: true, opacity: 0.85 }));
-        dome.position.y = 0.72;
-        g.add(dome);
+
+        // Adicionar Moedas 3D ao longo do caminho
+        if (i > 0 && i < 20) {
+          const coinGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.15, 16);
+          const coinMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.8, roughness: 0.2 });
+          const coin = new THREE.Mesh(coinGeo, coinMat);
+          coin.rotation.x = Math.PI / 2;
+          coin.position.set(curX + (Math.random() * 6 - 3), 1.2, curZ - blockLength / 2);
+          scene.add(coin);
+          trackCoins.push({ mesh: coin, collected: false });
+
+          // Bombas / Obstáculos a partir da Ilha 2
+          if (islandIndex > 0 && i % 3 === 0) {
+            const hazardGeo = new THREE.SphereGeometry(0.7, 12, 12);
+            const hazardMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
+            const hazard = new THREE.Mesh(hazardGeo, hazardMat);
+            hazard.position.set(curX + (Math.random() * 7 - 3.5), 0.8, curZ - blockLength / 2 + 3);
+            scene.add(hazard);
+            trackHazards.push({ mesh: hazard });
+          }
+        }
+
+        curZ -= blockLength;
+        if (i % 5 === 0 && i !== 0) {
+          curX += (Math.random() > 0.5 ? 4 : -4);
+        }
       }
 
-      // Tag de apelido se for no jogo (não no preview)
-      if (!isPreview) {
-        const c = document.createElement('canvas');
-        c.width = 256; c.height = 64;
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-        ctx.beginPath();
-        ctx.roundRect(10, 8, 236, 48, 24);
-        ctx.fill();
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#f59e0b';
-        ctx.stroke();
+      // Linha de Meta no Final
+      const finishGeo = new THREE.BoxGeometry(TRACK_WIDTH, 0.2, 3);
+      const finishMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+      const finishMesh = new THREE.Mesh(finishGeo, finishMat);
+      finishMesh.position.set(curX, 0.8, curZ);
+      scene.add(finishMesh);
+      trackBlocks.push({
+        mesh: finishMesh,
+        minX: curX - TRACK_WIDTH / 2,
+        maxX: curX + TRACK_WIDTH / 2,
+        minZ: curZ - 2,
+        maxZ: curZ + 2,
+        y: 0,
+        isFinish: true
+      });
 
-        ctx.fillStyle = '#fde047';
-        ctx.font = 'bold 22px system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, 128, 32);
-
-        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true }));
-        sprite.scale.set(2.6, 0.65, 1);
-        sprite.position.y = 2.2;
-        g.add(sprite);
+      // Fauna Viva Ambiente (Pássaros / Pterodáctilos no céu e Peixes na água)
+      for (let p = 0; p < 5; p++) {
+        const birdGeo = new THREE.ConeGeometry(0.5, 1.2, 4);
+        const birdMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const bird = new THREE.Mesh(birdGeo, birdMat);
+        bird.rotation.x = Math.PI / 2;
+        bird.position.set(Math.random() * 60 - 30, 15 + Math.random() * 10, -Math.random() * 200);
+        scene.add(bird);
+        ambientCreatures.push({ mesh: bird, speed: 0.15 + Math.random() * 0.1 });
       }
 
-      return g;
+      // Áudio da ilha
+      audioSys.startIslandTheme(islandIndex);
     }
 
-    /* ==========================================================================
-       5. MOTOR GRÁFICO PRINCIPAL & VISOR 3D DA LOJA
-       ========================================================================== */
-    let scene, camera, renderer;
-    let previewScene, previewCamera, previewRenderer, previewSpinnerGroup;
-    let previewSkinId = 'classic';
-    let waterMesh;
-    let trackBlocks = [];
-    let worldMeshes = [];
-    let activeCoins = [];
-    let activeBombs = [];
-    let activeSparks = [];
-    let activeFireworks = [];
-    let activeCreatures = [];
-    let grandTrophy = null;
+    /* =========================================================================
+       6. FÍSICA DOS PIÕES (JOGADOR & BOT FAÍSCA)
+       ========================================================================= */
+    const player = {
+      mesh: null,
+      pos: new THREE.Vector3(0, 1.0, 0),
+      vel: new THREE.Vector3(0, 0, 0),
+      isGrounded: true,
+      rpm: 3000,
+      active: true
+    };
 
-    const MAX_RPM = 8500;
-    const SPEED = 0.019;
-    const FRICTION = 0.94;
-    const GRAVITY = 0.024;
-    const JUMP_FORCE = 0.44;
+    const bot = {
+      mesh: null,
+      pos: new THREE.Vector3(2.5, 1.0, 0),
+      vel: new THREE.Vector3(0, 0, 0),
+      isGrounded: true,
+      rpm: 3000,
+      active: true
+    };
 
-    let currentLevel = 0;
-    let isRaceLive = false;
-    let isFinished = false;
-    let roundCoins = 0;
-    let isMultiplayer = false;
+    function initSpinners() {
+      if (player.mesh) scene.remove(player.mesh);
+      if (bot.mesh) scene.remove(bot.mesh);
+
+      player.mesh = createSpinnerMesh(userData.equippedSkin);
+      player.pos.set(-1.5, 1.0, 0);
+      player.vel.set(0, 0, 0);
+      player.isGrounded = true;
+      player.active = true;
+      scene.add(player.mesh);
+
+      bot.mesh = createSpinnerMesh('banguela');
+      bot.pos.set(1.5, 1.0, 0);
+      bot.vel.set(0, 0, 0);
+      bot.isGrounded = true;
+      bot.active = true;
+      scene.add(bot.mesh);
+    }
+
+    /* =========================================================================
+       7. ALAVANCA ANALÓGICA TÁTIL (JOYSTICK PLAYSTATION MOBILE) & INPUTS
+       ========================================================================= */
+    const joyZone = document.getElementById('joystick-zone');
+    const joyStick = document.getElementById('joystick-stick');
+    let joyTouchId = null;
+    let joystickVector = { x: 0, y: 0 }; // Normalizado -1 a 1
+    const JOY_RADIUS = 45;
+
+    joyZone.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      audioSys.init();
+      const touch = e.changedTouches[0];
+      joyTouchId = touch.identifier;
+      updateJoystickPosition(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (joyTouchId === null) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joyTouchId) {
+          updateJoystickPosition(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+          break;
+        }
+      }
+    }, { passive: false });
+
+    function resetJoystick() {
+      joyTouchId = null;
+      joystickVector = { x: 0, y: 0 };
+      joyStick.style.transform = `translate(-50%, -50%)`;
+    }
+
+    window.addEventListener('touchend', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joyTouchId) {
+          resetJoystick();
+          break;
+        }
+      }
+    });
+    window.addEventListener('touchcancel', resetJoystick);
+
+    function updateJoystickPosition(clientX, clientY) {
+      const rect = joyZone.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      let dx = clientX - centerX;
+      let dy = clientY - centerY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist > JOY_RADIUS) {
+        dx = (dx / dist) * JOY_RADIUS;
+        dy = (dy / dist) * JOY_RADIUS;
+      }
+
+      joyStick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      joystickVector.x = dx / JOY_RADIUS;
+      joystickVector.y = dy / JOY_RADIUS;
+    }
+
+    // Teclado para PC
+    const keys = {};
+    window.addEventListener('keydown', (e) => {
+      audioSys.init();
+      keys[e.code] = true;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        triggerJump();
+      }
+    }, { passive: false });
+
+    window.addEventListener('keyup', (e) => {
+      keys[e.code] = false;
+    });
+
+    // Pulo Mobile
+    const btnJump = document.getElementById('btn-jump');
+    btnJump.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      audioSys.init();
+      triggerJump();
+    }, { passive: false });
+    btnJump.addEventListener('mousedown', () => {
+      audioSys.init();
+      triggerJump();
+    });
+
+    function triggerJump() {
+      if (player.isGrounded && player.active) {
+        player.vel.y = 0.44;
+        player.pos.y += 0.08;
+        player.isGrounded = false;
+        audioSys.playJump();
+      }
+    }
+
+    /* =========================================================================
+       8. SISTEMA MULTIPLAYER ONLINE VIA PEERJS (CORRIGIDO E RESILIENTE)
+       ========================================================================= */
     let peer = null;
-    let netConnections = [];
+    let peerConn = null;
+    let isMultiplayerActive = false;
+    let isHost = false;
+    let remotePlayers = {};
 
-    const players = [
-      { id: 'p1', name: 'MestreGira', isLocal: true, skin: 'classic', pos: new THREE.Vector3(-1.8, 0.5, 0), vel: new THREE.Vector3(0,0,0), rpm: MAX_RPM, mesh: null, isGrounded: true, baseFloorY: 0, active: true },
-      { id: 'p2', name: 'Bot Faísca ⚡', isLocal: false, skin: 'tire', pos: new THREE.Vector3(1.8, 0.5, 0), vel: new THREE.Vector3(0,0,0), rpm: MAX_RPM, mesh: null, isGrounded: true, baseFloorY: 0, active: true },
-      { id: 'p3', name: 'Bot Sonic', isLocal: false, skin: 'sonic', pos: new THREE.Vector3(-3.8, 0.5, 2.5), vel: new THREE.Vector3(0,0,0), rpm: MAX_RPM, mesh: null, isGrounded: true, baseFloorY: 0, active: false },
-      { id: 'p4', name: 'Bot Dragão', isLocal: false, skin: 'toothless', pos: new THREE.Vector3(3.8, 0.5, 2.5), vel: new THREE.Vector3(0,0,0), rpm: MAX_RPM, mesh: null, isGrounded: true, baseFloorY: 0, active: false }
-    ];
+    function initPeerJS() {
+      if (peer) return;
 
-    const input = { x: 0, y: 0 };
+      const randomId = 'piao-' + Math.floor(1000 + Math.random() * 9000);
+      try {
+        peer = new Peer(randomId, {
+          debug: 1,
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:global.stun.twilio.com:3478' }
+            ]
+          }
+        });
 
-    function initThreeEngine() {
-      const canvas = document.getElementById('game-canvas');
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+        peer.on('open', (id) => {
+          document.getElementById('my-peer-id').value = id;
+          document.getElementById('online-lobby-status').innerText = 'Conectado à rede P2P! Código pronto.';
+        });
 
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x38bdf8);
+        peer.on('connection', (conn) => {
+          setupConnection(conn);
+          isHost = true;
+          document.getElementById('online-lobby-status').innerText = 'Adversário conectado! Iniciando batalha...';
+          setTimeout(startOnlineMatch, 1000);
+        });
 
-      camera = new THREE.PerspectiveCamera(52, w / h, 0.1, 750);
-      camera.position.set(0, 9, 11);
+        peer.on('error', (err) => {
+          console.error('PeerJS Erro:', err);
+          document.getElementById('online-lobby-status').innerText = 'Erro na rede P2P: ' + err.type;
+        });
 
-      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-      renderer.setSize(w, h);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-      // Luzes
-      scene.add(new THREE.AmbientLight(0xffffff, 0.95));
-      const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.3);
-      dirLight.position.set(20, 60, 20);
-      scene.add(dirLight);
-
-      // Malha inferior de água / lava
-      const waterMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 0.88 });
-      waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(350, 800), waterMat);
-      waterMesh.rotation.x = -Math.PI / 2;
-      waterMesh.position.set(0, -8.0, -160);
-      scene.add(waterMesh);
-
-      // Inicializa o Visor 3D da Loja
-      initPreviewEngine();
-
-      rebuildAllSpinners();
-      buildLevel(0);
-
-      window.addEventListener('resize', onResize);
-      requestAnimationFrame(renderLoop);
+      } catch (e) {
+        console.error('Falha ao inicializar PeerJS', e);
+      }
     }
 
-    function initPreviewEngine() {
-      const pCanvas = document.getElementById('preview-canvas');
-      if (!pCanvas) return;
-      const w = pCanvas.clientWidth || 300;
-      const h = pCanvas.clientHeight || 180;
+    function setupConnection(conn) {
+      peerConn = conn;
+      peerConn.on('open', () => {
+        isMultiplayerActive = true;
+        document.getElementById('online-lobby-status').innerText = 'Sincronizado com sucesso!';
+      });
+
+      peerConn.on('data', (data) => {
+        handleNetworkData(data);
+      });
+
+      peerConn.on('close', () => {
+        showToast('Adversário desconectou.');
+        isMultiplayerActive = false;
+      });
+    }
+
+    function handleNetworkData(data) {
+      if (data.type === 'pos') {
+        if (!remotePlayers[data.id]) {
+          const remoteMesh = createSpinnerMesh(data.skin || 'sonic');
+          scene.add(remoteMesh);
+          remotePlayers[data.id] = { mesh: remoteMesh, pos: new THREE.Vector3() };
+        }
+        remotePlayers[data.id].pos.set(data.x, data.y, data.z);
+      }
+    }
+
+    function startOnlineMatch() {
+      document.getElementById('multiplayer-modal').style.display = 'none';
+      document.getElementById('menu-modal').style.display = 'none';
+      bot.active = false; // Desativa o Bot no modo online real
+      buildIslandWorld(0);
+      initSpinners();
+      showToast('Batalha Online Iniciada!');
+    }
+
+    /* =========================================================================
+       9. LOOP PRINCIPAL DO JOGO (RENDER & FÍSICA 60FPS)
+       ========================================================================= */
+    const GRAVITY = -0.022;
+
+    function gameLoop() {
+      requestAnimationFrame(gameLoop);
+
+      // 1. Atualizar Jogador
+      if (player.active) {
+        // Leitura de Input Combinada (Teclado + Joystick Tátil)
+        let moveX = joystickVector.x;
+        let moveZ = joystickVector.y;
+
+        if (keys['ArrowLeft'] || keys['KeyA']) moveX = -1;
+        if (keys['ArrowRight'] || keys['KeyD']) moveX = 1;
+        if (keys['ArrowUp'] || keys['KeyW']) moveZ = -1;
+        if (keys['ArrowDown'] || keys['KeyS']) moveZ = 1;
+
+        // Aceleração para a frente constante estilo corrida
+        const forwardAutoSpeed = -0.26;
+        player.vel.z = forwardAutoSpeed + (moveZ * 0.15);
+        player.vel.x = moveX * 0.28;
+
+        // Aplicação de gravidade
+        player.vel.y += GRAVITY;
+        player.pos.add(player.vel);
+
+        // Rotação contínua do pião
+        player.mesh.rotation.y += 0.35;
+        player.mesh.position.copy(player.pos);
+
+        // Verificação de Suporte da Pista / Solo
+        let onTrack = false;
+        for (let b of trackBlocks) {
+          if (player.pos.x >= b.minX && player.pos.x <= b.maxX &&
+              player.pos.z >= b.minZ && player.pos.z <= b.maxZ) {
+            
+            if (b.isFinish) {
+              onLevelWin();
+              return;
+            }
+
+            if (player.pos.y <= b.y + 0.8 && player.pos.y >= b.y - 0.5) {
+              player.pos.y = b.y + 0.8;
+              player.vel.y = 0;
+              player.isGrounded = true;
+              onTrack = true;
+              break;
+            }
+          }
+        }
+        if (!onTrack) {
+          player.isGrounded = false;
+        }
+
+        // Queda no Abismo
+        if (player.pos.y < -12) {
+          onPlayerFall();
+        }
+
+        // Coleta de Moedas
+        trackCoins.forEach(coin => {
+          if (!coin.collected && player.pos.distanceTo(coin.mesh.position) < 1.6) {
+            coin.collected = true;
+            coin.mesh.visible = false;
+            userData.coins += 1;
+            saveUserData();
+            audioSys.playCoin();
+          }
+        });
+
+        // Colisão com Bombas / Perigos
+        trackHazards.forEach(hazard => {
+          if (player.pos.distanceTo(hazard.mesh.position) < 1.4) {
+            player.vel.y = 0.25;
+            player.vel.x = (Math.random() - 0.5) * 0.5;
+            audioSys.playExplosion();
+          }
+        });
+
+        // Envio de Posição via Rede se Online
+        if (isMultiplayerActive && peerConn && peerConn.open) {
+          peerConn.send({
+            type: 'pos',
+            id: peer.id,
+            x: player.pos.x,
+            y: player.pos.y,
+            z: player.pos.z,
+            skin: userData.equippedSkin
+          });
+        }
+      }
+
+      // 2. Atualizar Bot Faísca (IA de Perseguição)
+      if (bot.active) {
+        bot.pos.z -= 0.24; // Velocidade competitiva
+        // IA tenta manter o centro da pista
+        if (bot.pos.x > 1.5) bot.pos.x -= 0.05;
+        if (bot.pos.x < -1.5) bot.pos.x += 0.05;
+
+        bot.vel.y += GRAVITY;
+        bot.pos.add(bot.vel);
+        bot.mesh.rotation.y -= 0.35;
+        bot.mesh.position.copy(bot.pos);
+
+        // Suporte de solo do Bot
+        for (let b of trackBlocks) {
+          if (bot.pos.x >= b.minX && bot.pos.x <= b.maxX &&
+              bot.pos.z >= b.minZ && bot.pos.z <= b.maxZ) {
+            if (bot.pos.y <= b.y + 0.8 && bot.pos.y >= b.y - 0.5) {
+              bot.pos.y = b.y + 0.8;
+              bot.vel.y = 0;
+              bot.isGrounded = true;
+              break;
+            }
+          }
+        }
+        // Pulo do Bot sobre vãos
+        if (bot.pos.y < 0.2 && bot.isGrounded) {
+          bot.vel.y = 0.42;
+          bot.isGrounded = false;
+        }
+      }
+
+      // 3. Atualizar Posição dos Adversários Remotos Online
+      for (let id in remotePlayers) {
+        const rp = remotePlayers[id];
+        rp.mesh.position.lerp(rp.pos, 0.2);
+        rp.mesh.rotation.y += 0.3;
+      }
+
+      // 4. Animação de Pássaros & Criaturas
+      ambientCreatures.forEach(cr => {
+        cr.mesh.position.z += cr.speed;
+        if (cr.mesh.position.z > player.pos.z + 40) {
+          cr.mesh.position.z = player.pos.z - 160;
+        }
+      });
+
+      // 5. Câmera Seguidora Dinâmica Suave
+      const targetCamPos = new THREE.Vector3(
+        player.pos.x * 0.5,
+        player.pos.y + 5.0,
+        player.pos.z + 10.0
+      );
+      camera.position.lerp(targetCamPos, 0.1);
+      camera.lookAt(player.pos.x, player.pos.y + 1.2, player.pos.z - 6.0);
+
+      renderer.render(scene, camera);
+    }
+
+    /* =========================================================================
+       10. EVENTOS DE VITÓRIA, QUEDA E TRANSIÇÃO DE ILHAS
+       ========================================================================= */
+    function onLevelWin() {
+      if (currentIslandIndex < 9) {
+        currentIslandIndex++;
+        showToast('🏆 Ilha Concluída! Próxima fase...');
+        buildIslandWorld(currentIslandIndex);
+        player.pos.set(0, 1.0, 0);
+        player.vel.set(0, 0, 0);
+        bot.pos.set(1.5, 1.0, 0);
+        bot.vel.set(0, 0, 0);
+      } else {
+        // Grande Campeão na Ilha 10
+        player.active = false;
+        audioSys.stopTheme();
+        document.getElementById('victory-modal').style.display = 'flex';
+      }
+    }
+
+    function onPlayerFall() {
+      showToast('Caiu da pista! A reiniciar ilha...');
+      player.pos.set(0, 2.0, 0);
+      player.vel.set(0, 0, 0);
+    }
+
+    /* =========================================================================
+       11. GESTÃO DA LOJA COM PREVIEW 3D
+       ========================================================================= */
+    let previewRenderer, previewScene, previewCamera, previewMesh;
+
+    function initShopPreview() {
+      const container = document.getElementById('shop-preview-container');
+      if (previewRenderer) return;
 
       previewScene = new THREE.Scene();
-      previewCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 50);
-      previewCamera.position.set(0, 2.2, 4.2);
-      previewCamera.lookAt(0, 0.9, 0);
+      previewScene.background = new THREE.Color(0x1e293b);
 
-      previewRenderer = new THREE.WebGLRenderer({ canvas: pCanvas, alpha: true, antialias: true });
-      previewRenderer.setSize(w, h);
+      previewCamera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 50);
+      previewCamera.position.set(0, 1.8, 3.8);
+      previewCamera.lookAt(0, 0.8, 0);
 
-      previewScene.add(new THREE.AmbientLight(0xffffff, 1.2));
-      const pLight = new THREE.DirectionalLight(0xfffbeb, 1.4);
-      pLight.position.set(5, 10, 5);
-      previewScene.add(pLight);
+      const light = new THREE.DirectionalLight(0xffffff, 1.0);
+      light.position.set(5, 10, 5);
+      previewScene.add(light, new THREE.AmbientLight(0xffffff, 0.6));
 
-      updatePreviewSkin(saveState.equipped);
+      previewRenderer = new THREE.WebGLRenderer({ antialias: true });
+      previewRenderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(previewRenderer.domElement);
+
+      function animatePreview() {
+        requestAnimationFrame(animatePreview);
+        if (previewMesh) previewMesh.rotation.y += 0.03;
+        previewRenderer.render(previewScene, previewCamera);
+      }
+      animatePreview();
     }
 
     function updatePreviewSkin(skinId) {
-      previewSkinId = skinId;
-      if (previewSpinnerGroup) previewScene.remove(previewSpinnerGroup);
-
-      const sConf = SKINS.find(s => s.id === skinId) || SKINS[0];
-      previewSpinnerGroup = createDetailedSkinMesh(skinId, sConf.name, true);
-      previewScene.add(previewSpinnerGroup);
-
-      const nameBox = document.getElementById('preview-name');
-      if (nameBox) nameBox.innerText = sConf.name;
-
-      renderShopActionButtons();
-    }
-
-    function onResize() {
-      if (!camera || !renderer) return;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-
-      const pCanvas = document.getElementById('preview-canvas');
-      if (pCanvas && previewCamera && previewRenderer) {
-        const pw = pCanvas.clientWidth || 300;
-        const ph = pCanvas.clientHeight || 180;
-        previewCamera.aspect = pw / ph;
-        previewCamera.updateProjectionMatrix();
-        previewRenderer.setSize(pw, ph);
-      }
-    }
-
-    function rebuildAllSpinners() {
-      players.forEach(p => {
-        if (p.mesh) scene.remove(p.mesh);
-        const skinToUse = p.isLocal ? saveState.equipped : p.skin;
-        p.mesh = createDetailedSkinMesh(skinToUse, p.isLocal ? saveState.name : p.name, false);
-        p.mesh.position.copy(p.pos);
-        p.mesh.visible = p.active;
-        scene.add(p.mesh);
-      });
-    }
-
-    /* ==========================================================================
-       6. CRIATURAS INUSITADAS: PTERODÁCTILOS, DINOSSAUROS E DRAGÕES
-       ========================================================================== */
-    function spawnEpicCreatures(cData) {
-      // 1. Pterodáctilos Voando no Céu com Asas Articuladas
-      for (let i = 0; i < 4; i++) {
-        const ptero = new THREE.Group();
-        const pBody = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.8, 5), new THREE.MeshStandardMaterial({ color: 0x78350f }));
-        pBody.rotation.x = Math.PI / 2;
-        ptero.add(pBody);
-        const pBeak = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.1, 4), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
-        pBeak.rotation.x = Math.PI / 2;
-        pBeak.position.z = 1.35;
-        ptero.add(pBeak);
-        // Asas
-        const wingL = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.8), new THREE.MeshStandardMaterial({ color: 0xb45309 }));
-        wingL.position.set(-1.0, 0, 0);
-        ptero.add(wingL);
-        const wingR = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.8), new THREE.MeshStandardMaterial({ color: 0xb45309 }));
-        wingR.position.set(1.0, 0, 0);
-        ptero.add(wingR);
-
-        ptero.position.set((Math.random() - 0.5) * 45, 14 + Math.random() * 8, -Math.random() * 220);
-        scene.add(ptero);
-        worldMeshes.push(ptero);
-        activeCreatures.push({ group: ptero, wingL, wingR, speedZ: 0.18 + Math.random() * 0.08, type: 'ptero' });
-      }
-
-      // 2. Dragões Cuspidores de Fogo nos Cânions
-      if (cData.id === 4 || cData.id === 6 || cData.id === 9 || cData.id === 10) {
-        for (let i = 0; i < 3; i++) {
-          const dragon = new THREE.Group();
-          const dBody = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 3.2, 8), new THREE.MeshStandardMaterial({ color: cData.id === 4 ? 0xef4444 : 0x0284c7 }));
-          dBody.rotation.x = Math.PI / 2;
-          dragon.add(dBody);
-          // Cabeça e Labareda de Fogo
-          const dHead = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.4, 6), new THREE.MeshStandardMaterial({ color: 0x991b1b }));
-          dHead.rotation.x = Math.PI / 2;
-          dHead.position.set(0, 0.4, 2.2);
-          dragon.add(dHead);
-          const fireBreath = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.8, 6), new THREE.MeshBasicMaterial({ color: 0xf97316 }));
-          fireBreath.rotation.x = Math.PI / 2;
-          fireBreath.position.set(0, 0.3, 3.6);
-          dragon.add(fireBreath);
-          // Asas Enormes
-          const dWingL = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.08, 1.4), new THREE.MeshStandardMaterial({ color: 0x7f1d1d }));
-          dWingL.position.set(-1.8, 0.5, 0);
-          dragon.add(dWingL);
-          const dWingR = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.08, 1.4), new THREE.MeshStandardMaterial({ color: 0x7f1d1d }));
-          dWingR.position.set(1.8, 0.5, 0);
-          dragon.add(dWingR);
-
-          dragon.position.set((Math.random() - 0.5) * 55, 18 + Math.random() * 6, -50 - i * 65);
-          scene.add(dragon);
-          worldMeshes.push(dragon);
-          activeCreatures.push({ group: dragon, wingL: dWingL, wingR: dWingR, fire: fireBreath, speedZ: 0.14, type: 'dragon' });
-        }
-      }
-
-      // 3. Dinossauros Terrestres (T-Rex / Braquiossauro) nas Margens da Pista
-      for (let i = 0; i < 3; i++) {
-        const dino = new THREE.Group();
-        const dBody = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3.2, 4.4), new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.7 }));
-        dino.add(dBody);
-        const dNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 1.1, 4.5, 8), new THREE.MeshStandardMaterial({ color: 0x166534 }));
-        dNeck.position.set(0, 3.2, 1.8);
-        dNeck.rotation.x = 0.3;
-        dino.add(dNeck);
-        const dHead = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 2.0), new THREE.MeshStandardMaterial({ color: 0x14532d }));
-        dHead.position.set(0, 5.2, 2.6);
-        dino.add(dHead);
-
-        dino.position.set(i % 2 === 0 ? 18 : -18, -2.5, -40 - i * 65);
-        scene.add(dino);
-        worldMeshes.push(dino);
-        activeCreatures.push({ group: dino, type: 'dino', baseY: -2.5, speedZ: 0.04 });
-      }
-    }
-
-    /* ==========================================================================
-       7. CONSTRUÇÃO DA ILHA COM LOOPS, BOMBAS E MOEDAS
-       ========================================================================== */
-    function clearWorld() {
-      worldMeshes.forEach(m => scene.remove(m));
-      activeCoins.forEach(c => scene.remove(c.mesh));
-      activeBombs.forEach(b => scene.remove(b.mesh));
-      activeSparks.forEach(s => scene.remove(s.mesh));
-      activeFireworks.forEach(f => scene.remove(f.mesh));
-      if (grandTrophy) { scene.remove(grandTrophy); grandTrophy = null; }
-
-      worldMeshes = [];
-      activeCoins = [];
-      activeBombs = [];
-      activeSparks = [];
-      activeFireworks = [];
-      activeCreatures = [];
-      trackBlocks = [];
-    }
-
-    function buildLevel(idx) {
-      clearWorld();
-      isRaceLive = false;
-      isFinished = false;
-      roundCoins = 0;
-      currentLevel = idx;
-
-      const cData = ISLANDS_CONFIG[idx];
-      scene.background.setHex(cData.skyColor);
-
-      if (waterMesh) {
-        waterMesh.material.color.setHex(cData.waterColor);
-        waterMesh.position.y = cData.waterY || -8.0;
-      }
-
-      document.getElementById('hud-level-title').innerText = cData.title;
-      document.getElementById('hud-p1-rpm').innerText = '8500 RPM';
-      document.getElementById('hud-coin-count').innerText = '0';
-
-      trackBlocks = cData.blocks;
-
-      const trackMat = new THREE.MeshStandardMaterial({ color: cData.floorColor, roughness: 0.6 });
-      const finishMat = new THREE.MeshStandardMaterial({ color: cData.finishColor, roughness: 0.3 });
-      const totemMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.8 });
-
-      cData.blocks.forEach((b) => {
-        const isFin = b.isFinish;
-        const bY = b.y || 0;
-        const geo = new THREE.BoxGeometry(b.w, 1.2, b.d);
-        const mesh = new THREE.Mesh(geo, isFin ? finishMat : trackMat);
-        mesh.position.set(b.x, bY - 0.6, b.z);
-        scene.add(mesh);
-        worldMeshes.push(mesh);
-
-        // Totens temáticos e tochas nas margens
-        [-b.w / 2 - 1.8, b.w / 2 + 1.8].forEach(sideX => {
-          const totem = new THREE.Group();
-          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 3.2, 8), totemMat);
-          totem.add(pole);
-
-          const flameColor = idx === 1 ? 0x38bdf8 : (idx === 3 ? 0xef4444 : (idx === 4 ? 0xc084fc : 0xf97316));
-          const flame = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.6, 6), new THREE.MeshBasicMaterial({ color: flameColor }));
-          flame.position.y = 1.9;
-          totem.add(flame);
-
-          totem.position.set(b.x + sideX, bY + 1.2, b.z);
-          scene.add(totem);
-          worldMeshes.push(totem);
-        });
-
-        // Troféu dos Campeões na Linha de Chegada da Ilha 10
-        if (isFin && idx === 9) {
-          grandTrophy = new THREE.Group();
-          const cup = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 0.8, 2.4, 16), new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.95, roughness: 0.15 }));
-          cup.position.y = 3.6;
-          grandTrophy.add(cup);
-          const base = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 0.8, 16), new THREE.MeshStandardMaterial({ color: 0x1f2937 }));
-          base.position.y = 2.0;
-          grandTrophy.add(base);
-          grandTrophy.position.set(b.x, bY, b.z);
-          scene.add(grandTrophy);
-        }
-      });
-
-      // Arcos de Loops 3D na Pista
-      if (cData.loops) {
-        cData.loops.forEach(lp => {
-          const loopArch = new THREE.Mesh(
-            new THREE.TorusGeometry(lp.r, 0.45, 12, 24, Math.PI),
-            new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xd97706, emissiveIntensity: 0.4, metalness: 0.8 })
-          );
-          loopArch.position.set(lp.x, lp.y + lp.r / 2, lp.z);
-          scene.add(loopArch);
-          worldMeshes.push(loopArch);
-        });
-      }
-
-      // Minas / Bombas Espinhosas na Pista
-      if (cData.bombs) {
-        cData.bombs.forEach(bPos => {
-          const bGroup = new THREE.Group();
-          const bCore = new THREE.Mesh(new THREE.SphereGeometry(0.65, 12, 12), new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.4 }));
-          bGroup.add(bCore);
-          // Espinhos vermelhos pontiagudos
-          for (let sp = 0; sp < 6; sp++) {
-            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.55, 6), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-            const a = (sp / 6) * Math.PI * 2;
-            spike.position.set(Math.cos(a) * 0.65, 0, Math.sin(a) * 0.65);
-            spike.rotation.z = Math.PI / 2;
-            spike.rotation.y = -a;
-            bGroup.add(spike);
-          }
-          bGroup.position.set(bPos.x, 0.75, bPos.z);
-          scene.add(bGroup);
-          activeBombs.push({ mesh: bGroup, active: true, pos: new THREE.Vector3(bPos.x, 0.75, bPos.z) });
-        });
-      }
-
-      // Moedas Douradas 3D
-      if (cData.coins) {
-        cData.coins.forEach(pos => {
-          const coinGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.14, 18);
-          const coinMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.9, roughness: 0.2 });
-          const coinMesh = new THREE.Mesh(coinGeo, coinMat);
-          coinMesh.rotation.x = Math.PI / 2;
-          coinMesh.position.set(pos.x, 0.8, pos.z);
-          scene.add(coinMesh);
-          activeCoins.push({ mesh: coinMesh, active: true });
-        });
-      }
-
-      spawnEpicCreatures(cData);
-
-      // Reposiciona os Piões
-      players[0].pos.set(-1.8, 0.5, 0);
-      players[1].pos.set(1.8, 0.5, 0);
-      players[2].pos.set(-3.8, 0.5, 2.5);
-      players[3].pos.set(3.8, 0.5, 2.5);
-
-      players.forEach(p => {
-        p.vel.set(0,0,0);
-        p.rpm = MAX_RPM;
-        p.isGrounded = true;
-        if (p.mesh) {
-          p.mesh.position.copy(p.pos);
-          p.mesh.visible = p.active;
-        }
-      });
-    }
-
-    /* ==========================================================================
-       8. SISTEMA DE FAÍSCAS E FOGOS DE ARTIFÍCIO DO CAMPEÃO
-       ========================================================================== */
-    function emitSparks(pos, vel) {
-      for (let i = 0; i < 3; i++) {
-        const m = new THREE.Mesh(
-          new THREE.BoxGeometry(0.08, 0.08, 0.08),
-          new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0xfacc15 : 0xf97316 })
-        );
-        m.position.set(pos.x, pos.y - 0.35, pos.z);
-        scene.add(m);
-        activeSparks.push({
-          mesh: m,
-          vel: new THREE.Vector3(-vel.x * 0.8 + (Math.random() - 0.5) * 0.1, Math.random() * 0.1, -vel.z * 0.8 + (Math.random() - 0.5) * 0.1),
-          life: 12
-        });
-      }
-    }
-
-    function updateSparks() {
-      for (let i = activeSparks.length - 1; i >= 0; i--) {
-        const sp = activeSparks[i];
-        sp.mesh.position.add(sp.vel);
-        sp.life--;
-        if (sp.life <= 0) {
-          scene.remove(sp.mesh);
-          activeSparks.splice(i, 1);
-        }
-      }
-    }
-
-    function triggerChampionFireworks(isGrandFinal = false) {
-      const p1 = players[0];
-      const rounds = isGrandFinal ? 14 : 5;
-      for (let wave = 0; wave < rounds; wave++) {
-        setTimeout(() => {
-          if (!scene) return;
-          playSfx('firework');
-          const center = new THREE.Vector3(p1.pos.x + (Math.random() - 0.5) * 28, p1.pos.y + 7 + Math.random() * 9, p1.pos.z - 12);
-          const colors = [0xf59e0b, 0xef4444, 0x10b981, 0x38bdf8, 0xa855f7, 0xf43f5e];
-          const c = colors[Math.floor(Math.random() * colors.length)];
-
-          for (let i = 0; i < 40; i++) {
-            const m = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), new THREE.MeshBasicMaterial({ color: c }));
-            m.position.copy(center);
-            scene.add(m);
-            const speed = 0.22 + Math.random() * 0.28;
-            const a = Math.random() * Math.PI * 2;
-            const b = Math.random() * Math.PI;
-            activeFireworks.push({
-              mesh: m,
-              vel: new THREE.Vector3(speed * Math.sin(b) * Math.cos(a), speed * Math.cos(b), speed * Math.sin(b) * Math.sin(a)),
-              life: 52
-            });
-          }
-        }, wave * 320);
-      }
-    }
-
-    function updateFireworks() {
-      for (let i = activeFireworks.length - 1; i >= 0; i--) {
-        const fw = activeFireworks[i];
-        fw.mesh.position.add(fw.vel);
-        fw.vel.y -= 0.005;
-        fw.life--;
-        if (fw.life <= 0) {
-          scene.remove(fw.mesh);
-          activeFireworks.splice(i, 1);
-        }
-      }
-    }
-
-    /* ==========================================================================
-       9. PULO 100% GARANTIDO (BARRA DE ESPAÇO NO PC E TOQUE NO MOBILE)
-       ========================================================================== */
-    function doJump() {
-      const p1 = players[0];
-      if (!isRaceLive || isFinished) return;
-      p1.vel.y = JUMP_FORCE;
-      p1.pos.y += 0.08;
-      p1.isGrounded = false;
-      playSfx('jump');
-    }
-
-    /* ==========================================================================
-       10. LOOP DE FÍSICA E IA COMPETITIVA DO BOT FAÍSCA
-       ========================================================================== */
-    function getFloorUnder(x, z) {
-      for (let i = 0; i < trackBlocks.length; i++) {
-        const b = trackBlocks[i];
-        if (x >= b.x - b.w / 2 && x <= b.x + b.w / 2 && z >= b.z - b.d / 2 && z <= b.z + b.d / 2) {
-          return b;
-        }
-      }
-      return null;
-    }
-
-    function renderLoop() {
-      requestAnimationFrame(renderLoop);
-
-      if (waterMesh) {
-        waterMesh.position.z += 0.04;
-        if (waterMesh.position.z > -120) waterMesh.position.z = -160;
-      }
-
-      // Animação das criaturas (Pterodáctilos, Dragões e Dinossauros)
-      activeCreatures.forEach(c => {
-        if (c.type === 'ptero') {
-          c.group.position.z += c.speedZ;
-          c.wingL.rotation.z = Math.sin(Date.now() * 0.012) * 0.45;
-          c.wingR.rotation.z = -Math.sin(Date.now() * 0.012) * 0.45;
-          if (c.group.position.z > 20) c.group.position.z = -240;
-        } else if (c.type === 'dragon') {
-          c.group.position.z += c.speedZ;
-          c.wingL.rotation.z = Math.sin(Date.now() * 0.008) * 0.55;
-          c.wingR.rotation.z = -Math.sin(Date.now() * 0.008) * 0.55;
-          c.fire.scale.setScalar(0.85 + Math.sin(Date.now() * 0.02) * 0.3);
-          if (c.group.position.z > 20) c.group.position.z = -240;
-        } else if (c.type === 'dino') {
-          c.group.position.z += c.speedZ;
-          c.group.position.y = c.baseY + Math.abs(Math.sin(Date.now() * 0.004)) * 0.3;
-          if (c.group.position.z > 20) c.group.position.z = -220;
-        }
-      });
-
-      // Animação das moedas e bombas
-      activeCoins.forEach(c => {
-        if (c.active) c.mesh.rotation.z += 0.05;
-      });
-      activeBombs.forEach(b => {
-        if (b.active) b.mesh.rotation.y += 0.03;
-      });
-      if (grandTrophy) grandTrophy.rotation.y += 0.02;
-
-      // Animação do Visor 3D da Loja
-      if (previewSpinnerGroup && previewRenderer && previewScene && previewCamera) {
-        previewSpinnerGroup.rotation.y += 0.035;
-        previewRenderer.render(previewScene, previewCamera);
-      }
-
-      if (isRaceLive && !isFinished) {
-        updatePlayerPhysics();
-        updateSmartBotPhysics();
-        checkCollisions();
-        checkCoinsAndBombs();
-        checkRaceRules();
-      }
-
-      players.forEach(p => {
-        if (p.active && p.mesh) {
-          p.mesh.rotation.y += (p.rpm / MAX_RPM) * 0.55;
-          if (p.isGrounded && isRaceLive) {
-            emitSparks(p.pos, p.vel);
-          }
-        }
-      });
-
-      updateSparks();
-      updateFireworks();
-
-      const p1 = players[0];
-      if (p1.mesh && camera) {
-        camera.position.x = THREE.MathUtils.lerp(camera.position.x, p1.pos.x, 0.08);
-        camera.position.z = THREE.MathUtils.lerp(camera.position.z, p1.pos.z + 9.5, 0.08);
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, Math.max(0, p1.pos.y) + 6.2, 0.08);
-        camera.lookAt(p1.pos.x, Math.max(0, p1.pos.y) + 0.4, p1.pos.z - 2.5);
-      }
-
-      if (renderer && scene && camera) {
-        renderer.render(scene, camera);
-      }
-    }
-
-    function updatePlayerPhysics() {
-      const p1 = players[0];
-
-      p1.vel.x = (p1.vel.x + input.x * SPEED) * FRICTION;
-      p1.vel.z = (p1.vel.z + input.y * SPEED) * FRICTION;
-
-      p1.pos.x += p1.vel.x;
-      p1.pos.z += p1.vel.z;
-
-      const blk = getFloorUnder(p1.pos.x, p1.pos.z);
-      if (blk) {
-        const floorY = (blk.y || 0) + 0.5;
-        p1.baseFloorY = floorY;
-
-        if (p1.pos.y > floorY) {
-          p1.vel.y -= GRAVITY;
-          p1.pos.y += p1.vel.y;
-          if (p1.pos.y <= floorY) {
-            p1.pos.y = floorY;
-            p1.vel.y = 0;
-            p1.isGrounded = true;
-          }
-        } else {
-          p1.pos.y = floorY;
-          p1.vel.y = 0;
-          p1.isGrounded = true;
-        }
-      } else {
-        p1.isGrounded = false;
-        p1.vel.y -= GRAVITY * 1.5;
-        p1.pos.y += p1.vel.y;
-
-        if (p1.pos.y < p1.baseFloorY - 1.5) {
-          endRace(false, `${saveState.name} caiu no abismo da ilha!`);
-          return;
-        }
-      }
-
-      p1.mesh.position.copy(p1.pos);
-
-      p1.rpm -= 1.8;
-      if (p1.rpm <= 0) {
-        endRace(false, `${saveState.name} perdeu todo o giro!`);
-        return;
-      }
-
-      document.getElementById('rpm-bar-fill').style.width = `${Math.max(0, (p1.rpm / MAX_RPM) * 100)}%`;
-      document.getElementById('hud-p1-rpm').innerText = `${Math.round(p1.rpm)} RPM`;
-    }
-
-    // IA Competitiva do Bot Faísca com Desvio de Bombas
-    function updateSmartBotPhysics() {
-      const p2 = players[1];
-      if (!p2.active) return;
-
-      let targetX = 0;
-      const aheadBlock = getFloorUnder(p2.pos.x, p2.pos.z - 4.5);
-      const currentBlock = getFloorUnder(p2.pos.x, p2.pos.z);
-
-      if (aheadBlock) {
-        targetX = aheadBlock.x;
-      } else if (currentBlock) {
-        targetX = currentBlock.x;
-      }
-
-      // Desvio de Bombas
-      activeBombs.forEach(b => {
-        if (b.active && Math.abs(b.pos.z - p2.pos.z) < 6.0 && Math.abs(b.pos.x - p2.pos.x) < 2.5) {
-          targetX += (p2.pos.x > b.pos.x ? 3.0 : -3.0);
-        }
-      });
-
-      // Salto Tático em Vãos
-      const nextStepFloor = getFloorUnder(p2.pos.x, p2.pos.z - 3.8);
-      if (!nextStepFloor && p2.isGrounded) {
-        p2.vel.y = JUMP_FORCE * 1.05;
-        p2.pos.y += 0.08;
-        p2.isGrounded = false;
-      }
-
-      // Velocidade Competitiva
-      const distToPlayerZ = p2.pos.z - players[0].pos.z;
-      let catchupBonus = 1.0;
-      if (distToPlayerZ > 6) catchupBonus = 1.15;
-      if (distToPlayerZ < -10) catchupBonus = 0.95;
-
-      const botSpeed = SPEED * (0.95 + currentLevel * 0.012) * catchupBonus;
-      const steerX = (targetX - p2.pos.x) * 0.04;
-
-      p2.vel.x = (p2.vel.x + steerX) * FRICTION;
-      p2.vel.z = (p2.vel.z - botSpeed) * FRICTION;
-
-      p2.pos.x += p2.vel.x;
-      p2.pos.z += p2.vel.z;
-
-      const blk = getFloorUnder(p2.pos.x, p2.pos.z);
-      if (blk) {
-        const floorY = (blk.y || 0) + 0.5;
-        if (p2.pos.y > floorY) {
-          p2.vel.y -= GRAVITY;
-          p2.pos.y += p2.vel.y;
-          if (p2.pos.y <= floorY) {
-            p2.pos.y = floorY;
-            p2.vel.y = 0;
-            p2.isGrounded = true;
-          }
-        } else {
-          p2.pos.y = floorY;
-          p2.vel.y = 0;
-          p2.isGrounded = true;
-        }
-      } else {
-        p2.isGrounded = false;
-        p2.vel.y -= GRAVITY * 1.5;
-        p2.pos.y += p2.vel.y;
-
-        if (p2.pos.y < -1.5) {
-          endRace(true, "Bot Faísca caiu no abismo! Vitória imediata!");
-          return;
-        }
-      }
-
-      p2.mesh.position.copy(p2.pos);
-      p2.rpm -= 1.8;
-      document.getElementById('hud-p2-rpm').innerText = `${Math.round(p2.rpm)} RPM`;
-    }
-
-    function checkCollisions() {
-      const p1 = players[0];
-      const p2 = players[1];
-      const dist = p1.pos.distanceTo(p2.pos);
-      if (dist < 1.15 && dist > 0.05) {
-        const nx = (p1.pos.x - p2.pos.x) / dist;
-        const nz = (p1.pos.z - p2.pos.z) / dist;
-        p1.vel.x += nx * 0.12;
-        p1.vel.z += nz * 0.12;
-        p2.vel.x -= nx * 0.12;
-        p2.vel.z -= nz * 0.12;
-        p1.rpm = Math.max(0, p1.rpm - 350);
-        p2.rpm = Math.max(0, p2.rpm - 350);
-      }
-    }
-
-    function checkCoinsAndBombs() {
-      const p1 = players[0];
-
-      // Checa Moedas
-      activeCoins.forEach(c => {
-        if (c.active && p1.pos.distanceTo(c.mesh.position) < 1.3) {
-          c.active = false;
-          c.mesh.visible = false;
-          roundCoins += 5;
-          saveState.coins += 5;
-          writeSave();
-          playSfx('coin');
-          p1.rpm = Math.min(MAX_RPM, p1.rpm + 1500);
-          document.getElementById('hud-coin-count').innerText = roundCoins;
-        }
-      });
-
-      // Checa Minas / Bombas Espinhosas
-      activeBombs.forEach(b => {
-        if (b.active && p1.pos.distanceTo(b.pos) < 1.25) {
-          b.active = false;
-          b.mesh.visible = false;
-          playSfx('bomb');
-          // Explosão de faíscas
-          for (let i = 0; i < 25; i++) {
-            const m = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-            m.position.copy(b.pos);
-            scene.add(m);
-            activeSparks.push({
-              mesh: m,
-              vel: new THREE.Vector3((Math.random() - 0.5) * 0.35, Math.random() * 0.35, (Math.random() - 0.5) * 0.35),
-              life: 25
-            });
-          }
-          // Dano e Recuo
-          p1.rpm = Math.max(0, p1.rpm - 2500);
-          p1.vel.x += (Math.random() - 0.5) * 0.28;
-          p1.vel.z += 0.25;
-        }
-      });
-    }
-
-    function checkRaceRules() {
-      const cData = ISLANDS_CONFIG[currentLevel];
-      const lastBlock = cData.blocks[cData.blocks.length - 1];
-      const finishZ = lastBlock.z;
-      const p1 = players[0];
-      const p2 = players[1];
-
-      if (p1.pos.z <= finishZ) {
-        endRace(true, `${saveState.name} cruzou a linha em 1º Lugar!`);
-      } else if (p2.pos.z <= finishZ) {
-        endRace(false, "Bot Faísca venceu a corrida!");
-      }
-    }
-
-    function endRace(won, msg) {
-      if (isFinished) return;
-      isFinished = true;
-      isRaceLive = false;
-
-      const modal = document.getElementById('screen-result');
-      const icon = document.getElementById('res-icon');
-      const title = document.getElementById('res-title');
-      const desc = document.getElementById('res-desc');
-      const btn = document.getElementById('res-btn-action');
-
-      modal.classList.remove('hidden');
-
-      if (won) {
-        const isGrandChamp = (currentLevel === 9);
-        triggerChampionFireworks(isGrandChamp);
-
-        if (isGrandChamp) {
-          icon.innerText = "🏆🎆";
-          title.innerText = "Parabéns Miseravi, Você é o campeão!";
-          desc.innerText = `Você superou todas as 10 Ilhas Lendárias, bateu o Bot Faísca e consagrou seu nome na história do Gira-Gira!`;
-          btn.innerText = "Jogar Novamente";
-          btn.onclick = () => location.reload();
-        } else {
-          icon.innerText = "🎆";
-          title.innerText = "Vitória na Ilha!";
-          desc.innerText = msg;
-          btn.innerText = `Avançar para a Ilha ${currentLevel + 2} →`;
-          btn.onclick = () => advanceLevel();
-        }
-      } else {
-        icon.innerText = "❌";
-        title.innerText = "Derrota na Ilha!";
-        desc.innerText = msg;
-        btn.innerText = "Tentar Novamente";
-        btn.onclick = () => {
-          modal.classList.add('hidden');
-          buildLevel(currentLevel);
-          startCountdown();
-        };
-      }
-    }
-
-    function advanceLevel() {
-      document.getElementById('screen-result').classList.add('hidden');
-      currentLevel++;
-      if (currentLevel < ISLANDS_CONFIG.length) {
-        buildLevel(currentLevel);
-        playRealTrack(currentLevel);
-        startCountdown();
-      }
-    }
-
-    /* ==========================================================================
-       11. CONTAGEM 3, 2, 1, JÁ!
-       ========================================================================== */
-    function startCountdown() {
-      const text = document.getElementById('countdown-text');
-      const steps = ['3', '2', '1', 'JÁ!'];
-      let i = 0;
-
-      function step() {
-        if (i < steps.length) {
-          text.innerText = steps[i];
-          text.style.transform = "scale(1.25)";
-          setTimeout(() => { text.style.transform = "scale(1.0)"; }, 150);
-          playSfx(i === 3 ? 'coin' : 'jump');
-          i++;
-          setTimeout(step, 750);
-        } else {
-          text.style.transform = "scale(0)";
-          isRaceLive = true;
-        }
-      }
-      step();
-    }
-
-    /* ==========================================================================
-       12. CONTROLES: TECLADO (PC) E TOUCH (MOBILE)
-       ========================================================================== */
-    function bindInputs() {
-      window.addEventListener('keydown', e => {
-        if (e.code === 'Space' || e.key === ' ' || e.keyCode === 32) {
-          e.preventDefault();
-          doJump();
-        }
-        if (e.key === 'w' || e.key === 'ArrowUp') input.y = -1;
-        if (e.key === 's' || e.key === 'ArrowDown') input.y = 1;
-        if (e.key === 'a' || e.key === 'ArrowLeft') input.x = -1;
-        if (e.key === 'd' || e.key === 'ArrowRight') input.x = 1;
-      }, { passive: false });
-
-      window.addEventListener('keyup', e => {
-        if (['w', 's', 'ArrowUp', 'ArrowDown'].includes(e.key)) input.y = 0;
-        if (['a', 'd', 'ArrowLeft', 'ArrowRight'].includes(e.key)) input.x = 0;
-      });
-
-      function bindTouch(id, onDown, onUp) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener('pointerdown', e => { e.preventDefault(); onDown(); });
-        el.addEventListener('pointerup', e => { e.preventDefault(); onUp(); });
-        el.addEventListener('pointercancel', e => { e.preventDefault(); onUp(); });
-      }
-
-      bindTouch('dpad-up', () => input.y = -1, () => input.y = 0);
-      bindTouch('dpad-down', () => input.y = 1, () => input.y = 0);
-      bindTouch('dpad-left', () => input.x = -1, () => input.x = 0);
-      bindTouch('dpad-right', () => input.x = 1, () => input.x = 0);
-
-      const jBtn = document.getElementById('btn-jump-action');
-      if (jBtn) {
-        jBtn.addEventListener('pointerdown', e => {
-          e.preventDefault();
-          e.stopPropagation();
-          doJump();
-        });
-      }
-    }
-
-    /* ==========================================================================
-       13. LOJA COM VITRINE 3D & MULTIPLAYER ONLINE
-       ========================================================================== */
-    function openShop() {
-      renderShopUI();
-      document.getElementById('screen-shop').classList.remove('hidden');
-      setTimeout(onResize, 50);
-    }
-
-    function closeShop() {
-      document.getElementById('screen-shop').classList.add('hidden');
-      updateCoinsUI();
-      rebuildAllSpinners();
+      if (previewMesh) previewScene.remove(previewMesh);
+      previewMesh = createSpinnerMesh(skinId);
+      previewMesh.position.set(0, 0, 0);
+      previewScene.add(previewMesh);
     }
 
     function renderShopUI() {
-      const grid = document.getElementById('shop-grid');
-      grid.innerHTML = '';
+      const list = document.getElementById('skin-list');
+      list.innerHTML = '';
 
-      SKINS.forEach(s => {
-        const isSelected = previewSkinId === s.id;
-        const isEq = saveState.equipped === s.id;
+      SKINS_CATALOG.forEach(skin => {
+        const isUnlocked = userData.unlockedSkins.includes(skin.id);
+        const isEquipped = userData.equippedSkin === skin.id;
 
-        const card = document.createElement('div');
-        card.style.cssText = `background: ${isSelected ? '#334155' : '#0f172a'}; border: 2px solid ${isSelected ? '#facc15' : '#475569'}; border-radius: 12px; padding: 8px; text-align: center; cursor: pointer;`;
-        card.onclick = () => {
-          updatePreviewSkin(s.id);
-          renderShopUI();
-        };
-
-        card.innerHTML = `
-          <div style="font-weight: 900; font-size: 11px; color: ${isSelected ? '#fde047' : '#fff'}; margin-bottom: 4px;">${s.name}</div>
-          <div style="font-size: 10px; color: #94a3b8;">${isEq ? '⭐ Em Uso' : (saveState.unlocked.includes(s.id) ? 'Desbloqueado' : `🪙 ${s.price}`)}</div>
+        const item = document.createElement('div');
+        item.className = `skin-item ${isEquipped ? 'equipped' : ''}`;
+        item.innerHTML = `
+          <span>${skin.name}</span>
+          <span style="color: #fbbf24">${isUnlocked ? 'Desbloqueado' : '🪙 ' + skin.price}</span>
         `;
-        grid.appendChild(card);
+        item.onclick = () => {
+          document.querySelectorAll('.skin-item').forEach(el => el.classList.remove('selected'));
+          item.classList.add('selected');
+          updatePreviewSkin(skin.id);
+
+          const btn = document.getElementById('btn-equip-skin');
+          if (isUnlocked) {
+            btn.innerText = 'Equipar';
+            btn.onclick = () => {
+              userData.equippedSkin = skin.id;
+              saveUserData();
+              initSpinners();
+              renderShopUI();
+            };
+          } else {
+            btn.innerText = `Comprar (${skin.price} Moedas)`;
+            btn.onclick = () => {
+              if (userData.coins >= skin.price) {
+                userData.coins -= skin.price;
+                userData.unlockedSkins.push(skin.id);
+                userData.equippedSkin = skin.id;
+                saveUserData();
+                initSpinners();
+                renderShopUI();
+                showToast('Skin desbloqueada!');
+              } else {
+                showToast('Moedas insuficientes!');
+              }
+            };
+          }
+        };
+        list.appendChild(item);
       });
-
-      renderShopActionButtons();
     }
 
-    function renderShopActionButtons() {
-      const actBox = document.getElementById('shop-action-box');
-      if (!actBox) return;
+    /* =========================================================================
+       12. LIGAÇÃO DOS BOTÕES DA INTERFACE (UI)
+       ========================================================================= */
+    document.getElementById('btn-play-campaign').onclick = () => {
+      audioSys.init();
+      saveUserData();
+      document.getElementById('menu-modal').style.display = 'none';
+      buildIslandWorld(0);
+      initSpinners();
+    };
 
-      const s = SKINS.find(item => item.id === previewSkinId) || SKINS[0];
-      const isUnlocked = saveState.unlocked.includes(s.id);
-      const isEq = saveState.equipped === s.id;
+    document.getElementById('btn-open-multiplayer').onclick = () => {
+      audioSys.init();
+      document.getElementById('multiplayer-modal').style.display = 'flex';
+      initPeerJS();
+    };
 
-      if (isEq) {
-        actBox.innerHTML = `<button class="btn btn-green" style="padding: 10px; font-size: 13px; margin: 0;">EM USO NO MOMENTO</button>`;
-      } else if (isUnlocked) {
-        actBox.innerHTML = `<button onclick="equipSkinItem('${s.id}')" class="btn btn-amber" style="padding: 10px; font-size: 13px; margin: 0;">EQUIPAR ESTE PERSONAGEM</button>`;
-      } else {
-        const canBuy = saveState.coins >= s.price;
-        actBox.innerHTML = `<button onclick="buySkinItem('${s.id}', ${s.price})" class="btn ${canBuy ? 'btn-green' : 'btn-gray'}" style="padding: 10px; font-size: 13px; margin: 0;">${canBuy ? `COMPRAR POR 🪙 ${s.price}` : `FALTAM MOEDAS (🪙 ${s.price})`}</button>`;
+    document.getElementById('btn-close-multiplayer').onclick = () => {
+      document.getElementById('multiplayer-modal').style.display = 'none';
+    };
+
+    document.getElementById('btn-copy-id').onclick = () => {
+      const idInput = document.getElementById('my-peer-id');
+      navigator.clipboard.writeText(idInput.value);
+      showToast('Código copiado!');
+    };
+
+    document.getElementById('btn-host-room').onclick = () => {
+      showToast('Aguardando entrada do adversário...');
+    };
+
+    document.getElementById('btn-join-room').onclick = () => {
+      const targetId = document.getElementById('join-peer-id').value.trim();
+      if (!targetId) {
+        showToast('Cole o código do anfitrião!');
+        return;
       }
-    }
+      document.getElementById('online-lobby-status').innerText = 'A conectar à sala...';
+      const conn = peer.connect(targetId);
+      setupConnection(conn);
+      conn.on('open', () => {
+        startOnlineMatch();
+      });
+    };
 
-    function buySkinItem(id, price) {
-      if (saveState.coins >= price && !saveState.unlocked.includes(id)) {
-        saveState.coins -= price;
-        saveState.unlocked.push(id);
-        saveState.equipped = id;
-        writeSave();
-        playSfx('coin');
-        renderShopUI();
-      }
-    }
+    document.getElementById('btn-open-shop').onclick = () => {
+      document.getElementById('shop-modal').style.display = 'flex';
+      initShopPreview();
+      renderShopUI();
+      updatePreviewSkin(userData.equippedSkin);
+    };
 
-    function equipSkinItem(id) {
-      if (saveState.unlocked.includes(id)) {
-        saveState.equipped = id;
-        writeSave();
-        playSfx('coin');
-        renderShopUI();
-      }
-    }
+    document.getElementById('btn-close-shop').onclick = () => {
+      document.getElementById('shop-modal').style.display = 'none';
+    };
 
-    function openMultiplayer() {
-      saveNick();
-      document.getElementById('screen-main').classList.add('hidden');
-      document.getElementById('screen-online').classList.remove('hidden');
-    }
+    document.getElementById('btn-restart-game').onclick = () => {
+      document.getElementById('victory-modal').style.display = 'none';
+      currentIslandIndex = 0;
+      buildIslandWorld(0);
+      initSpinners();
+      player.active = true;
+    };
 
-    function closeMultiplayer() {
-      document.getElementById('screen-online').classList.add('hidden');
-      document.getElementById('screen-main').classList.remove('hidden');
-      if (peer) { peer.destroy(); peer = null; }
-    }
+    document.getElementById('audio-toggle').onclick = () => {
+      audioSys.init();
+      audioSys.enabled = !audioSys.enabled;
+      document.getElementById('audio-toggle').innerText = audioSys.enabled ? '🔊 Som' : '🔇 Mudo';
+      if (!audioSys.enabled) audioSys.stopTheme();
+      else audioSys.startIslandTheme(currentIslandIndex);
+    };
 
-    function hostOnlineRoom() {
-      const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-      const statusBox = document.getElementById('online-status-info');
-      statusBox.innerHTML = `Criando sala...`;
-
-      try {
-        peer = new Peer('piao-' + code);
-        peer.on('open', () => {
-          statusBox.innerHTML = `Código: <strong style="color: #facc15; font-size: 16px;">${code}</strong><br>Passe ao seu amigo!`;
-          document.getElementById('btn-start-multi').classList.remove('hidden');
-          players[1].active = true;
-          players[2].active = true;
-        });
-        peer.on('connection', conn => {
-          netConnections.push(conn);
-          statusBox.innerHTML = `Código: <strong>${code}</strong><br><span style="color: #4ade80;">Amigo Conectado! Pronto para jogar.</span>`;
-        });
-      } catch (e) {
-        statusBox.innerText = "Erro ao iniciar Peer.";
-      }
-    }
-
-    function joinOnlineRoom() {
-      const code = document.getElementById('online-code-input').value.trim().toUpperCase();
-      if (!code) return alert("Digite o código da sala!");
-
-      const statusBox = document.getElementById('online-status-info');
-      statusBox.innerHTML = `Conectando a ${code}...`;
-
-      try {
-        peer = new Peer();
-        peer.on('open', () => {
-          const conn = peer.connect('piao-' + code);
-          netConnections.push(conn);
-          conn.on('open', () => {
-            statusBox.innerHTML = `<span style="color: #4ade80;">Conectado! Aguarde o Host iniciar.</span>`;
-          });
-        });
-      } catch (e) {
-        statusBox.innerText = "Erro ao entrar na sala.";
-      }
-    }
-
-    function startMultiMatch() {
-      isMultiplayer = true;
-      document.getElementById('screen-online').classList.add('hidden');
-      launchGame();
-    }
-
-    /* ==========================================================================
-       14. FLUXO DE INICIALIZAÇÃO
-       ========================================================================== */
-    function saveNick() {
-      const nickEl = document.getElementById('player-nick');
-      if (nickEl && nickEl.value.trim()) {
-        saveState.name = nickEl.value.trim();
-        writeSave();
-      }
-    }
-
-    function startSinglePlayer() {
-      saveNick();
-      isMultiplayer = false;
-      players[1].active = true;
-      players[2].active = false;
-      players[3].active = false;
-
-      document.getElementById('screen-main').classList.add('hidden');
-      launchGame();
-    }
-
-    function launchGame() {
-      document.getElementById('hud-layer').classList.remove('hidden');
-      document.getElementById('mobile-dpad').classList.remove('hidden');
-      document.getElementById('mobile-jump-wrap').classList.remove('hidden');
-
-      rebuildAllSpinners();
-      buildLevel(0);
-      playRealTrack(0);
-      startCountdown();
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      loadSave();
-      const nickEl = document.getElementById('player-nick');
-      if (nickEl) nickEl.value = saveState.name;
-
-      initAudioEngine();
-      initThreeEngine();
-      bindInputs();
-    });
+    // Inicialização ao carregar
+    window.onload = () => {
+      loadSavedData();
+      buildIslandWorld(0);
+      initSpinners();
+      gameLoop();
+    };
   </script>
 </body>
 </html>
